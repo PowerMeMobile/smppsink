@@ -39,8 +39,9 @@
     mc_session :: pid(),
     smpp_log_mgr :: pid(),
     addr :: string(),
-    system_type :: string(),
-    system_id :: string(),
+    system_type :: binary(),
+    system_id :: binary(),
+    version :: pos_integer(),
     uuid :: string(),
     is_bound = false :: boolean()
 }).
@@ -90,7 +91,7 @@ handle_call({handle_accept, Addr}, _From, St) ->
     smppsink_smpp_server:accepted(),
     {reply, ok, St#st{addr = Addr, uuid = Uuid}};
 
-handle_call({handle_bind, BindType, SystemType, SystemId, Password, _Version}, _From, St) ->
+handle_call({handle_bind, BindType, SystemType, SystemId, Password, Version}, _From, St) ->
     PduLogName = pdu_log_name(BindType, SystemType, SystemId, St#st.uuid),
     case smppsink_app:get_env(log_smpp_pdus) of
         true ->
@@ -101,7 +102,6 @@ handle_call({handle_bind, BindType, SystemType, SystemId, Password, _Version}, _
         false ->
             ok
     end,
-
     case authenticate(BindType, SystemType, SystemId, Password) of
         ok ->
             ?log_info("Granted bind "
@@ -112,7 +112,8 @@ handle_call({handle_bind, BindType, SystemType, SystemId, Password, _Version}, _
             {reply, {ok, Params}, St#st{
                 is_bound = true,
                 system_type = list_to_binary(SystemType),
-                system_id = list_to_binary(SystemId)
+                system_id = list_to_binary(SystemId),
+                version = Version
             }};
         {error, ErrorCode} ->
             ?log_info("Denied bind "
@@ -131,6 +132,19 @@ handle_cast({handle_operation, submit_sm, SeqNum, Params}, St) ->
 handle_cast({handle_operation, _Cmd, SeqNum, _Params}, St) ->
     Reply = {error, ?ESME_RPROHIBITED},
     gen_mc_session:reply(St#st.mc_session, {SeqNum, Reply}),
+    {noreply, St};
+
+handle_cast({handle_resp, Resp, Ref}, St) ->
+    Reply =
+         case Resp of
+            {ok, {_CmdId, _Status, _SeqNum, Body}} ->
+                {ok, Body};
+            {error, {command_status, Status}} ->
+                {error, smpp_error:format(Status)};
+            {error, Status} ->
+                {error, smpp_error:format(Status)}
+         end,
+    ?log_debug("resp: ~p", [Reply]),
     {noreply, St};
 
 handle_cast(stop, St) ->
@@ -246,14 +260,24 @@ authenticate_step(register, BindType, SystemType, SystemId, _Password) ->
             {error, ?ESME_RALYBND}
     end.
 
-submit_sm_step(submit, {SeqNum, _Params}, St) ->
+submit_sm_step(submit, {SeqNum, Params}, St) ->
     Result = {ok, []},
     case Result of
         {ok, ReplyParams} ->
             MsgId = smppsink_id_map:next_id(St#st.system_type, St#st.system_id),
             Reply = {ok, [{message_id, integer_to_list(MsgId)}]},
             ?log_debug("Sent ok (message_id: ~p, reply: ~p)", [MsgId, ReplyParams]),
-            gen_mc_session:reply(St#st.mc_session, {SeqNum, Reply});
+            gen_mc_session:reply(St#st.mc_session, {SeqNum, Reply}),
+            case ?gv(registered_delivery, Params) of
+                1 ->
+                    spawn(fun() ->
+                        timer:sleep(1000),
+                        DeliveryReply = make_delivery_receipt(MsgId, Params, St#st.version),
+                        gen_mc_session:deliver_sm(St#st.mc_session, DeliveryReply)
+                    end);
+                _ ->
+                    nop
+            end;
         {error, Error} ->
             ?log_debug("Sending failed with: ~p", [Error]),
             Reply = {error, Error},
@@ -263,3 +287,67 @@ submit_sm_step(submit, {SeqNum, _Params}, St) ->
 pdu_log_name(BindType, SystemType, SystemId, Uuid) ->
     lists:flatten(io_lib:format("~s-cid~s-~s-~s.log",
         [BindType, SystemType, SystemId, Uuid])).
+
+make_delivery_receipt(MsgId, Params, Version) ->
+    STon = ?gv(source_addr_ton, Params),
+    SNpi = ?gv(source_addr_npi, Params),
+    SAddr = ?gv(source_addr, Params),
+    DTon = ?gv(dest_addr_ton, Params),
+    DNpi = ?gv(dest_addr_npi, Params),
+    DAddr = ?gv(destination_addr, Params),
+
+    UTCDate = binary_to_list(
+        ac_datetime:timestamp_to_utc_string(os:timestamp())),
+    SubmitDate = UTCDate,
+    DoneDate = UTCDate,
+    State = delivered,
+    ShortMsg = ?gv(short_message, Params),
+    ShortMsg2 = lists:concat([
+        "id:",           MsgId,
+        " submit date:", lists:sublist(SubmitDate, 10),
+        " done date:",   lists:sublist(DoneDate, 10),
+        " stat:",        text_state(State),
+        " text:",        lists:sublist(ShortMsg, 20)
+    ]),
+    Params33 = [
+        {source_addr_ton,  STon},
+        {source_addr_npi,  SNpi},
+        {source_addr,      SAddr},
+        {dest_addr_ton,    DTon},
+        {dest_addr_npi,    DNpi},
+        {destination_addr, DAddr},
+        {data_coding,      0},
+        {short_message,    ShortMsg2},
+        {esm_class,        4}
+    ],
+
+    case Version of
+        16#33 ->
+            Params33;
+        _ ->
+            [
+                {receipted_message_id, integer_to_list(MsgId)},
+                {message_state, int_state(State)}
+                | Params33
+            ]
+    end.
+
+%% -------------------------------------------------------------------------
+%% receipt states
+%% -------------------------------------------------------------------------
+
+text_state(delivered)     -> "DELIVRD";
+text_state(expired)       -> "EXPIRED";
+text_state(deleted)       -> "DELETED";
+text_state(undeliverable) -> "UNDELIV";
+text_state(accepted)      -> "ACCEPTD";
+text_state(unknown)       -> "UNKNOWN";
+text_state(rejected)      -> "REJECTD".
+
+int_state(delivered)     -> 2;
+int_state(expired)       -> 3;
+int_state(deleted)       -> 4;
+int_state(undeliverable) -> 5;
+int_state(accepted)      -> 6;
+int_state(unknown)       -> 7;
+int_state(rejected)      -> 8.
