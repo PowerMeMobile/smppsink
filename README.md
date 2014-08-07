@@ -1,11 +1,13 @@
+[![Build Status](https://travis-ci.org/PowerMeMobile/smppsink.png?branch=master)](https://travis-ci.org/PowerMeMobile/smppsink)
+
 ## Prerequisites
 
-In order to compile and run the **smppsink** utility you need to have [Erlang](http://www.erlang.org/), [rebar](https://github.com/basho/rebar), and make installed.
+In order to compile and run **smppsink** you need to have [Erlang](http://www.erlang.org/) and make installed.
 
 ## Compilation
 
 <pre>
-$ git clone ...
+$ git https://github.com/PowerMeMobile/smppsink.git
 $ cd
 $ make
 </pre>
