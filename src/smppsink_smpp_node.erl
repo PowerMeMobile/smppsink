@@ -39,8 +39,9 @@
     mc_session :: pid(),
     smpp_log_mgr :: pid(),
     addr :: string(),
-    system_type :: binary(),
-    system_id :: binary(),
+    system_type :: string(),
+    system_id :: string(),
+    uuid :: string(),
     is_bound = false :: boolean()
 }).
 
@@ -63,7 +64,10 @@ stop(Node) ->
 %% ===================================================================
 
 init(LSock) ->
-    {ok, SmppLogMgr} = smpp_log_mgr:start_link(),
+    process_flag(trap_exit, true),
+    ?log_debug("Node: initializing", []),
+    {ok, SMPPLogMgr} = smpp_log_mgr:start_link(),
+    pmm_smpp_logger_h:sup_add_to_manager(SMPPLogMgr),
     Timers = ?TIMERS(
         smppsink_app:get_env(session_init_time),
         smppsink_app:get_env(enquire_link_time),
@@ -71,20 +75,33 @@ init(LSock) ->
         smppsink_app:get_env(response_time)
     ),
     {ok, Session} = gen_mc_session:start_link(?MODULE, [
-        {log, SmppLogMgr}, {lsock, LSock}, {timers, Timers}
+        {log, SMPPLogMgr}, {lsock, LSock}, {timers, Timers}
     ]),
-    {ok, #st{smpp_log_mgr = SmppLogMgr, mc_session = Session}}.
+    {ok, #st{smpp_log_mgr = SMPPLogMgr, mc_session = Session}}.
 
 terminate(_Reason, St) ->
     catch(gen_mc_session:stop(St#st.mc_session)),
+    catch(pmm_smpp_logger_h:deactivate(St#st.smpp_log_mgr)),
     catch(smpp_log_mgr:stop(St#st.smpp_log_mgr)).
 
 handle_call({handle_accept, Addr}, _From, St) ->
     ?log_info("Accepted connection (addr: ~s)", [Addr]),
+    Uuid = binary_to_list(uuid:unparse(uuid:generate())),
     smppsink_smpp_server:accepted(),
-    {reply, ok, St#st{addr = Addr}};
+    {reply, ok, St#st{addr = Addr, uuid = Uuid}};
 
 handle_call({handle_bind, BindType, SystemType, SystemId, Password, _Version}, _From, St) ->
+    PduLogName = pdu_log_name(BindType, SystemType, SystemId, St#st.uuid),
+    case smppsink_app:get_env(log_smpp_pdus) of
+        true ->
+            LogParams = [{base_dir, smppsink_app:get_env(smpp_pdu_log_dir)},
+                         {base_file_name, PduLogName},
+                         {max_size, smppsink_app:get_env(file_log_size)}],
+            pmm_smpp_logger_h:activate(St#st.smpp_log_mgr, LogParams);
+        false ->
+            ok
+    end,
+
     case authenticate(BindType, SystemType, SystemId, Password) of
         ok ->
             ?log_info("Granted bind "
@@ -242,3 +259,7 @@ submit_sm_step(submit, {SeqNum, _Params}, St) ->
             Reply = {error, Error},
             gen_mc_session:reply(St#st.mc_session, {SeqNum, Reply})
     end.
+
+pdu_log_name(BindType, SystemType, SystemId, Uuid) ->
+    lists:flatten(io_lib:format("~s-cid~s-~s-~s.log",
+        [BindType, SystemType, SystemId, Uuid])).

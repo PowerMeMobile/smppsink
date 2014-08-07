@@ -65,4 +65,10 @@ default_env(enquire_link_time) ->
 default_env(inactivity_time) ->
     infinity;
 default_env(response_time) ->
-    60000.
+    60000;
+default_env(log_smpp_pdus) ->
+    true;
+default_env(smpp_pdu_log_dir) ->
+    "log/smpp";
+default_env(file_log_size) ->
+    5000000.
