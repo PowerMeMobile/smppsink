@@ -108,7 +108,7 @@ handle_call(Request, _From, St) ->
     {stop, {unexpected_call, Request}, St}.
 
 handle_cast({handle_operation, submit_sm, SeqNum, Params}, St) ->
-    _Pid = spawn(fun() -> handle_submit_sm(SeqNum, Params, St) end),
+    handle_submit_sm(SeqNum, Params, St),
     {noreply, St};
 
 handle_cast({handle_operation, _Cmd, SeqNum, _Params}, St) ->
@@ -229,7 +229,7 @@ authenticate_step(register, BindType, SystemType, SystemId, _Password) ->
             {error, ?ESME_RALYBND}
     end.
 
-submit_sm_step(submit, {SeqNum, Params}, St) ->
+submit_sm_step(submit, {SeqNum, _Params}, St) ->
     Result = {ok, []},
     case Result of
         {ok, ReplyParams} ->
