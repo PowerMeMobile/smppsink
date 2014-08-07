@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if [[ $# -ne 2 ]]; then
+	echo "smppsink <params>"
+	exit 1
+fi
+
+./bin/smppsink script "$1" "$2"

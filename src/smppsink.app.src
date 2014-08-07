@@ -1,0 +1,11 @@
+{application, smppsink, [
+	{description, "smppsink"},
+	{vsn, "0.0.1"},
+	{registered, []},
+	{applications, [
+		kernel,
+		stdlib
+	]},
+	{mod, {smppsink_app, []}},
+	{env, []}
+]}.
