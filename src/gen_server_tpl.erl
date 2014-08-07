@@ -2,20 +2,20 @@
 
 %% API
 -export([
-	start_link/0
+    start_link/0
 ]).
 
 %% gen_server callbacks
 -export([
-	init/1,
-	handle_call/3,
-	handle_cast/2,
-	handle_info/2,
-	terminate/2,
-	code_change/3
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
 ]).
 
--include("gen_server_spec.hrl").
+-include_lib("alley_common/include/gen_server_spec.hrl").
 
 -record(state, {
 }).
@@ -26,29 +26,29 @@
 
 -spec start_link() -> {ok, pid()}.
 start_link() ->
-	gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 %% ===================================================================
 %% gen_server callbacks
 %% ===================================================================
 
 init([]) ->
-	{ok, #state{}}.
+    {ok, #state{}}.
 
 handle_call(Request, _From, State = #state{}) ->
-	{stop, {bad_arg, Request}, State}.
+    {stop, {bad_arg, Request}, State}.
 
 handle_cast(Request, State = #state{}) ->
-	{stop, {bad_arg, Request}, State}.
+    {stop, {bad_arg, Request}, State}.
 
 handle_info(Message, State = #state{}) ->
-	{stop, {bad_arg, Message}, State}.
+    {stop, {bad_arg, Message}, State}.
 
 terminate(_Reason, #state{}) ->
-	ok.
+    ok.
 
 code_change(_OldVsn, State, _Extra) ->
-	{ok, State}.
+    {ok, State}.
 
 %% ===================================================================
 %% Internal

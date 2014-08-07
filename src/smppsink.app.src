@@ -1,11 +1,13 @@
 {application, smppsink, [
-	{description, "smppsink"},
-	{vsn, "0.0.1"},
-	{registered, []},
-	{applications, [
-		kernel,
-		stdlib
-	]},
-	{mod, {smppsink_app, []}},
-	{env, []}
+    {description, "smppsink"},
+    {vsn, git},
+    {registered, []},
+    {applications, [
+        kernel,
+        stdlib,
+        lager,
+        gproc
+    ]},
+    {mod, {smppsink_app, []}},
+    {env, []}
 ]}.

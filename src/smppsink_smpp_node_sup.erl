@@ -1,35 +1,31 @@
--module(smppsink_sup).
+-module(smppsink_smpp_node_sup).
 
 -behaviour(supervisor).
 
-%% API
 -export([start_link/0]).
-
-%% supervisor callbacks
+-export([start_node/1]).
 -export([init/1]).
 
 -include_lib("alley_common/include/supervisor_spec.hrl").
 
-%% Helper macro for declaring children of supervisor
--define(CHILD(Mod, Restart, Shutdown, Type),
-    {Mod, {Mod, start_link, []}, Restart, Shutdown, Type, [Mod]}).
-
-
 %% ===================================================================
 %% API
 %% ===================================================================
 
--spec start_link() -> {ok, pid()} | ignore | {error, term()}.
+-spec start_link() -> {ok, pid()}.
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+
+-spec start_node(port()) -> {ok, pid()}.
+start_node(LSock) ->
+    supervisor:start_child(?MODULE, [LSock]).
 
 %% ===================================================================
 %% supervisor callbacks
 %% ===================================================================
 
 init([]) ->
-    {ok, {{one_for_one, 5, 10}, [
-        ?CHILD(smppsink_id_map, permanent, 10000, worker),
-        ?CHILD(smppsink_smpp_node_sup, permanent, 5000, supervisor),
-        ?CHILD(smppsink_smpp_server, permanent, 10000, worker)
+    {ok, {{simple_one_for_one, 0, 1}, [
+        {node_sup, {smppsink_smpp_node, start_link, []},
+            temporary, 10000, worker, [smppkink_smpp_node]}
     ]}}.
