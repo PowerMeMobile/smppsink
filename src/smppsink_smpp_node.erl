@@ -271,11 +271,9 @@ submit_sm_step(submit, {SeqNum, Params}, St) ->
             case ?gv(registered_delivery, Params) of
                 0 -> nop;
                 _ ->
-                    spawn(fun() ->
-                        timer:sleep(1000),
-                        DeliveryReply = make_delivery_receipt(MsgId, Params, St#st.version),
-                        gen_mc_session:deliver_sm(St#st.mc_session, DeliveryReply)
-                    end)
+                    timer:sleep(1000),
+                    DeliveryReply = make_delivery_receipt(MsgId, Params, St#st.version),
+                    gen_mc_session:deliver_sm(St#st.mc_session, DeliveryReply)
             end;
         {error, Status} ->
             ?log_debug("Sending failed with: (0x~8.16.0B) ~s", [Status, smpp_error:format(Status)]),
@@ -288,8 +286,11 @@ pdu_log_name(BindType, SystemType, SystemId, Uuid) ->
         [BindType, SystemType, SystemId, Uuid])).
 
 maybe_handle_command("SUBMIT_STATUS=" ++ Status) ->
-    try
-        {error, parse_status(Status)}
+    try parse_status(Status) of
+        0 ->
+            ok;
+        Error ->
+            {error, Error}
     catch
         _:_ ->
             ?log_error("Failed to parse status: ~p. Proceed as normal message", [Status]),
