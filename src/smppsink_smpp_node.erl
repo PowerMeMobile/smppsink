@@ -230,6 +230,10 @@ handle_submit_sm(SeqNum, Params, St) ->
 %% Internal
 %% ===================================================================
 
+pdu_log_name(BindType, SystemType, SystemId, Uuid) ->
+    lists:flatten(io_lib:format("~s-cid~s-~s-~s.log",
+        [BindType, SystemType, SystemId, Uuid])).
+
 authenticate(BindType, SystemType, SystemId, Password) ->
     authenticate_step(verify_account, BindType, SystemType, SystemId, Password).
 
@@ -280,10 +284,6 @@ submit_sm_step(submit, {SeqNum, Params}, St) ->
             Reply = {error, Status},
             gen_mc_session:reply(St#st.mc_session, {SeqNum, Reply})
     end.
-
-pdu_log_name(BindType, SystemType, SystemId, Uuid) ->
-    lists:flatten(io_lib:format("~s-cid~s-~s-~s.log",
-        [BindType, SystemType, SystemId, Uuid])).
 
 maybe_handle_command("SUBMIT_STATUS=" ++ Status) ->
     case parse_integer(Status) of
@@ -357,9 +357,9 @@ make_delivery_receipt(MsgId, Params, Version) ->
             ]
     end.
 
-%% -------------------------------------------------------------------------
-%% receipt states
-%% -------------------------------------------------------------------------
+%% ===================================================================
+%% Receipt states
+%% ===================================================================
 
 text_state(delivered)     -> "DELIVRD";
 text_state(expired)       -> "EXPIRED";
