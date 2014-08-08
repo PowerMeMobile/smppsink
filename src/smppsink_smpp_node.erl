@@ -286,24 +286,32 @@ pdu_log_name(BindType, SystemType, SystemId, Uuid) ->
         [BindType, SystemType, SystemId, Uuid])).
 
 maybe_handle_command("SUBMIT_STATUS=" ++ Status) ->
-    try parse_status(Status) of
-        0 ->
+    case parse_integer(Status) of
+        {ok, 0} ->
             ok;
-        Error ->
-            {error, Error}
-    catch
-        _:_ ->
+        {ok, Status2} ->
+            {error, Status2};
+        {error, bad_integer} ->
             ?log_error("Failed to parse status: ~p. Proceed as normal message", [Status]),
-             ok
+            ok
     end;
 maybe_handle_command(_ShortMsg) ->
     ok.
 
-parse_status("0x" ++ Hex) ->
-    {ok, [Int], _} = io_lib:fread("~16u", Hex),
-    Int;
-parse_status(Int) ->
-    list_to_integer(Int).
+parse_integer("0x" ++ Hex) ->
+    case io_lib:fread("~16u", Hex) of
+        {ok, [Int], []} ->
+            {ok, Int};
+        _ ->
+            {error, bad_integer}
+    end;
+parse_integer(Int) ->
+    try
+        {ok, list_to_integer(Int)}
+    catch
+        _:_ ->
+            {error, bad_integer}
+    end.
 
 make_delivery_receipt(MsgId, Params, Version) ->
     STon = ?gv(source_addr_ton, Params),
