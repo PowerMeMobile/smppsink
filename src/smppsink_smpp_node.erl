@@ -269,14 +269,13 @@ submit_sm_step(submit, {SeqNum, Params}, St) ->
             ?log_debug("Sent ok (message_id: ~p, reply: ~p)", [MsgId, ReplyParams]),
             gen_mc_session:reply(St#st.mc_session, {SeqNum, Reply}),
             case ?gv(registered_delivery, Params) of
-                1 ->
+                0 -> nop;
+                _ ->
                     spawn(fun() ->
                         timer:sleep(1000),
                         DeliveryReply = make_delivery_receipt(MsgId, Params, St#st.version),
                         gen_mc_session:deliver_sm(St#st.mc_session, DeliveryReply)
-                    end);
-                _ ->
-                    nop
+                    end)
             end;
         {error, Error} ->
             ?log_debug("Sending failed with: ~p", [Error]),
