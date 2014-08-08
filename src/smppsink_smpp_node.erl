@@ -134,7 +134,7 @@ handle_cast({handle_operation, _Cmd, SeqNum, _Params}, St) ->
     gen_mc_session:reply(St#st.mc_session, {SeqNum, Reply}),
     {noreply, St};
 
-handle_cast({handle_resp, Resp, Ref}, St) ->
+handle_cast({handle_resp, Resp, _Ref}, St) ->
     Reply =
          case Resp of
             {ok, {_CmdId, _Status, _SeqNum, Body}} ->
@@ -265,38 +265,99 @@ authenticate_step(register, BindType, SystemType, SystemId, _Password) ->
     end.
 
 submit_sm_step(submit, {SeqNum, Params}, St) ->
-    ShortMsg = ?gv(short_message, Params),
-    case maybe_handle_command(ShortMsg) of
-        ok ->
-            MsgId = smppsink_id_map:next_id(St#st.system_type, St#st.system_id),
-            Reply = {ok, [{message_id, integer_to_list(MsgId)}]},
-            ?log_debug("Sent ok (message_id: ~p)", [MsgId]),
-            gen_mc_session:reply(St#st.mc_session, {SeqNum, Reply}),
-            case ?gv(registered_delivery, Params) of
-                0 -> nop;
-                _ ->
-                    timer:sleep(1000),
-                    DeliveryReply = make_delivery_receipt(MsgId, Params, St#st.version),
-                    gen_mc_session:deliver_sm(St#st.mc_session, DeliveryReply)
-            end;
-        {error, Status} ->
-            ?log_debug("Sending failed with: (0x~8.16.0B) ~s", [Status, smpp_error:format(Status)]),
-            Reply = {error, Status},
-            gen_mc_session:reply(St#st.mc_session, {SeqNum, Reply})
+    MsgId = smppsink_id_map:next_id(St#st.system_type, St#st.system_id),
+    Context = [
+        {seq_num, SeqNum},
+        {msg_id, MsgId},
+        {session, St#st.mc_session},
+        {system_type, St#st.system_type},
+        {system_id, St#st.system_id},
+        {version, St#st.version}
+        | Params
+    ],
+    Commands = build_commands(Context),
+    perform_commands(Commands, Context).
+
+build_commands(Context) ->
+    Message = ?gv(short_message, Context),
+    Chunks = string:tokens(Message, ";"),
+    parse_commands(Chunks, Context).
+
+parse_commands(Chunks, Context) ->
+    parse_commands(Chunks, Context, []).
+
+parse_commands([], _Context, Acc) ->
+    lists:reverse(Acc);
+parse_commands([Chunk | Chunks], Context, Acc) ->
+    case parse_command(Chunk, Context) of
+        {ok, Command} ->
+            parse_commands(Chunks, Context, [Command | Acc]);
+        error ->
+            default_commands(Context)
     end.
 
-maybe_handle_command("SUBMIT_STATUS=" ++ Status) ->
+default_commands(Context) ->
+    Commands =
+        case ?gv(registered_delivery, Context) of
+            0 ->
+                [{reply_submit_status, 0}];
+            _ ->
+                Message = build_delivery_receipt(delivered, Context),
+                [{reply_submit_status, 0}, {sleep, 0}, {send_deliver_sm, Message}]
+        end,
+    Commands.
+
+parse_command("SUBMIT_STATUS=" ++ Status, _Context) ->
     case parse_integer(Status) of
-        {ok, 0} ->
-            ok;
         {ok, Status2} ->
-            {error, Status2};
+            {ok, {reply_submit_status, Status2}};
         {error, bad_integer} ->
             ?log_error("Failed to parse status: ~p. Proceed as normal message", [Status]),
-            ok
+            error
     end;
-maybe_handle_command(_ShortMsg) ->
-    ok.
+parse_command("SLEEP=" ++ Time, _Context) ->
+    case parse_integer(Time) of
+        {ok, Time2} ->
+            {ok, {sleep, Time2}};
+        {error, bad_integer} ->
+            ?log_error("Failed to parse time: ~p. Proceed as normal message", [Time]),
+            error
+    end;
+parse_command("DELIVERY_STATUS=" ++ Status, Context) ->
+    Status2 = string:to_lower(Status),
+    Status3 = list_to_existing_atom(Status2),
+    Message = build_delivery_receipt(Status3, Context),
+    {ok, {send_deliver_sm, Message}};
+parse_command(_Chunk, _Context) ->
+    error.
+
+perform_commands([], _Context) ->
+    ok;
+perform_commands([Command | Commands], Context) ->
+    perform_command(Command, Context),
+    perform_commands(Commands, Context).
+
+perform_command({reply_submit_status, Status}, Context) ->
+    Reply =
+        case Status of
+            0 ->
+                MsgId = ?gv(msg_id, Context),
+                ?log_debug("Reply success (message_id: ~p)", [MsgId]),
+                {ok, [{message_id, integer_to_list(MsgId)}]};
+            _ ->
+                ?log_debug("Reply failure (status: (0x~8.16.0B) ~s)", [Status, smpp_error:format(Status)]),
+                {error, Status}
+        end,
+    Session = ?gv(session, Context),
+    SeqNum = ?gv(seq_num, Context),
+    gen_mc_session:reply(Session, {SeqNum, Reply});
+perform_command({sleep, Time}, _Context) ->
+    ?log_debug("Sleep ~p ms", [Time]),
+    timer:sleep(Time);
+perform_command({send_deliver_sm, Message}, Context) ->
+    ?log_debug("Send deliver sm (message: ~p)", [Message]),
+    Session = ?gv(session, Context),
+    gen_mc_session:deliver_sm(Session, Message).
 
 parse_integer("0x" ++ Hex) ->
     case io_lib:fread("~16u", Hex) of
@@ -313,26 +374,27 @@ parse_integer(Int) ->
             {error, bad_integer}
     end.
 
-make_delivery_receipt(MsgId, Params, Version) ->
-    STon = ?gv(source_addr_ton, Params),
-    SNpi = ?gv(source_addr_npi, Params),
-    SAddr = ?gv(source_addr, Params),
-    DTon = ?gv(dest_addr_ton, Params),
-    DNpi = ?gv(dest_addr_npi, Params),
-    DAddr = ?gv(destination_addr, Params),
+build_delivery_receipt(Status, Context) ->
+    STon = ?gv(source_addr_ton, Context),
+    SNpi = ?gv(source_addr_npi, Context),
+    SAddr = ?gv(source_addr, Context),
+    DTon = ?gv(dest_addr_ton, Context),
+    DNpi = ?gv(dest_addr_npi, Context),
+    DAddr = ?gv(destination_addr, Context),
 
     UTCDate = binary_to_list(
         ac_datetime:timestamp_to_utc_string(os:timestamp())),
     SubmitDate = UTCDate,
     DoneDate = UTCDate,
-    State = delivered,
-    ShortMsg = ?gv(short_message, Params),
-    ShortMsg2 = lists:concat([
+    Message = ?gv(short_message, Context),
+    MsgId = ?gv(msg_id, Context),
+    Version = ?gv(version, Context),
+    Message2 = lists:concat([
         "id:",           MsgId,
         " submit date:", lists:sublist(SubmitDate, 10),
         " done date:",   lists:sublist(DoneDate, 10),
-        " stat:",        text_state(State),
-        " text:",        lists:sublist(ShortMsg, 20)
+        " stat:",        text_status(Status),
+        " text:",        lists:sublist(Message, 20)
     ]),
     Params33 = [
         {source_addr_ton,  STon},
@@ -342,7 +404,7 @@ make_delivery_receipt(MsgId, Params, Version) ->
         {dest_addr_npi,    DNpi},
         {destination_addr, DAddr},
         {data_coding,      0},
-        {short_message,    ShortMsg2},
+        {short_message,    Message2},
         {esm_class,        4}
     ],
 
@@ -352,27 +414,27 @@ make_delivery_receipt(MsgId, Params, Version) ->
         _ ->
             [
                 {receipted_message_id, integer_to_list(MsgId)},
-                {message_state, int_state(State)}
+                {message_state, int_status(Status)}
                 | Params33
             ]
     end.
 
 %% ===================================================================
-%% Receipt states
+%% Receipt statuses
 %% ===================================================================
 
-text_state(delivered)     -> "DELIVRD";
-text_state(expired)       -> "EXPIRED";
-text_state(deleted)       -> "DELETED";
-text_state(undeliverable) -> "UNDELIV";
-text_state(accepted)      -> "ACCEPTD";
-text_state(unknown)       -> "UNKNOWN";
-text_state(rejected)      -> "REJECTD".
+text_status(delivered)     -> "DELIVRD";
+text_status(expired)       -> "EXPIRED";
+text_status(deleted)       -> "DELETED";
+text_status(undeliverable) -> "UNDELIV";
+text_status(accepted)      -> "ACCEPTD";
+text_status(unknown)       -> "UNKNOWN";
+text_status(rejected)      -> "REJECTD".
 
-int_state(delivered)     -> 2;
-int_state(expired)       -> 3;
-int_state(deleted)       -> 4;
-int_state(undeliverable) -> 5;
-int_state(accepted)      -> 6;
-int_state(unknown)       -> 7;
-int_state(rejected)      -> 8.
+int_status(delivered)     -> 2;
+int_status(expired)       -> 3;
+int_status(deleted)       -> 4;
+int_status(undeliverable) -> 5;
+int_status(accepted)      -> 6;
+int_status(unknown)       -> 7;
+int_status(rejected)      -> 8.
