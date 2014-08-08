@@ -261,12 +261,12 @@ authenticate_step(register, BindType, SystemType, SystemId, _Password) ->
     end.
 
 submit_sm_step(submit, {SeqNum, Params}, St) ->
-    Result = {ok, []},
-    case Result of
-        {ok, ReplyParams} ->
+    ShortMsg = ?gv(short_message, Params),
+    case maybe_handle_command(ShortMsg) of
+        ok ->
             MsgId = smppsink_id_map:next_id(St#st.system_type, St#st.system_id),
             Reply = {ok, [{message_id, integer_to_list(MsgId)}]},
-            ?log_debug("Sent ok (message_id: ~p, reply: ~p)", [MsgId, ReplyParams]),
+            ?log_debug("Sent ok (message_id: ~p)", [MsgId]),
             gen_mc_session:reply(St#st.mc_session, {SeqNum, Reply}),
             case ?gv(registered_delivery, Params) of
                 0 -> nop;
@@ -277,15 +277,32 @@ submit_sm_step(submit, {SeqNum, Params}, St) ->
                         gen_mc_session:deliver_sm(St#st.mc_session, DeliveryReply)
                     end)
             end;
-        {error, Error} ->
-            ?log_debug("Sending failed with: ~p", [Error]),
-            Reply = {error, Error},
+        {error, Status} ->
+            ?log_debug("Sending failed with: (0x~8.16.0B) ~s", [Status, smpp_error:format(Status)]),
+            Reply = {error, Status},
             gen_mc_session:reply(St#st.mc_session, {SeqNum, Reply})
     end.
 
 pdu_log_name(BindType, SystemType, SystemId, Uuid) ->
     lists:flatten(io_lib:format("~s-cid~s-~s-~s.log",
         [BindType, SystemType, SystemId, Uuid])).
+
+maybe_handle_command("SUBMIT_STATUS=" ++ Status) ->
+    try
+        {error, parse_status(Status)}
+    catch
+        _:_ ->
+            ?log_error("Failed to parse status: ~p. Proceed as normal message", [Status]),
+             ok
+    end;
+maybe_handle_command(_ShortMsg) ->
+    ok.
+
+parse_status("0x" ++ Hex) ->
+    {ok, [Int], _} = io_lib:fread("~16u", Hex),
+    Int;
+parse_status(Int) ->
+    list_to_integer(Int).
 
 make_delivery_receipt(MsgId, Params, Version) ->
     STon = ?gv(source_addr_ton, Params),
