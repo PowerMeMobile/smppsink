@@ -93,15 +93,11 @@ REMSH="$ERTS_PATH/erl $REMSH_NAME_ARG $REMSH_REMSH_ARG $COOKIE_ARG"
 
 # Check the first argument for instructions
 case "$1" in
-    script|console|develop)
+    console|develop)
         # .boot file typically just $SCRIPT (ie, the app name)
         # however, for debugging, sometimes start_clean.boot is useful.
         # For e.g. 'setup', one may even want to name another boot script.
         case "$1" in
-            script)
-                BOOTFILE=$SCRIPT
-                PARAMS="-noshell -s smppsink main $2 $3 -s init stop"
-                ;;
             console)
                 BOOTFILE=$SCRIPT
                 ;;
@@ -115,7 +111,7 @@ case "$1" in
         BINDIR=$ROOTDIR/erts-$ERTS_VSN/bin
         EMU=beam
         PROGNAME=`echo $0 | sed 's/.*\\///'`
-        CMD="$BINDIR/erlexec $PARAMS -boot $RUNNER_BASE_DIR/releases/$APP_VSN/$BOOTFILE -mode embedded -config $CONFIG_PATH -args_file $VMARGS_PATH"
+        CMD="$BINDIR/erlexec $PARAMS -boot $RUNNER_BASE_DIR/releases/$APP_VSN/$BOOTFILE -mode embedded -config $CONFIG_PATH -args_file $VMARGS_PATH $DEV_HOOK"
         export EMU
         export ROOTDIR
         export BINDIR
@@ -132,7 +128,7 @@ case "$1" in
         exec $CMD -- ${1+"$@"}
         ;;
     *)
-        echo "Usage: $SCRIPT {script|console|develop}"
+        echo "Usage: $SCRIPT {console|develop}"
         exit 1
         ;;
 esac
