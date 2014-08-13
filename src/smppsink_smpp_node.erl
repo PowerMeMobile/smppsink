@@ -280,55 +280,79 @@ submit_sm_step(submit, {SeqNum, Params}, St) ->
 
 build_commands(Context) ->
     Message = ?gv(short_message, Context),
-    Chunks = string:tokens(Message, ";"),
-    parse_commands(Chunks, Context).
+    case yamerl_constr:string(Message) of
+        [Message] ->
+            ?log_error("Invalid commands: ~p. Proceed as normal message", [Message]),
+            default_commands(Context);
+        [Plist] ->
+            add_default_commands(handle_commands(Plist, Context), Context)
+    end.
 
-parse_commands(Chunks, Context) ->
-    parse_commands(Chunks, Context, []).
+handle_commands(Commands, Context) ->
+    handle_commands(Commands, Context, []).
 
-parse_commands([], _Context, Acc) ->
-    lists:reverse(Acc);
-parse_commands([Chunk | Chunks], Context, Acc) ->
-    case parse_command(Chunk, Context) of
-        {ok, Command} ->
-            parse_commands(Chunks, Context, [Command | Acc]);
+handle_commands([], _Context, Acc) ->
+    Acc;
+handle_commands([{Key, Value} | Plist], Context, Acc) ->
+    case parse_command({Key, Value}, Context) of
+        {ok, Commands} ->
+            handle_commands(Plist, Context, Acc ++ Commands);
         error ->
             default_commands(Context)
     end.
 
 default_commands(Context) ->
-    Commands =
-        case ?gv(registered_delivery, Context) of
-            0 ->
-                [{reply_submit_status, 0}];
-            _ ->
-                Message = build_delivery_receipt(delivered, Context),
-                [{reply_submit_status, 0}, {sleep, 0}, {send_deliver_sm, Message}]
-        end,
-    Commands.
+    add_default_commands([], Context).
 
-parse_command("SUBMIT_STATUS=" ++ Status, _Context) ->
-    case parse_integer(Status) of
-        {ok, Status2} ->
-            {ok, {reply_submit_status, Status2}};
-        {error, bad_integer} ->
-            ?log_error("Failed to parse status: ~p. Proceed as normal message", [Status]),
-            error
+add_default_commands(Commands, Context) ->
+    case proplists:get_value(reply_submit_status, Commands) of
+        undefined ->
+            add_default_commands([{reply_submit_status, 0} | Commands], Context);
+        0 ->
+            case ?gv(registered_delivery, Context) of
+                0 ->
+                    Commands;
+                _ ->
+                    case proplists:get_value(send_deliver_sm, Commands) of
+                        undefined ->
+                            Message = build_receipt("delivered", Context),
+                            Commands ++ [{send_deliver_sm, Message}];
+                        _ ->
+                            Commands
+                    end
+            end;
+        _ ->
+            Commands
+    end.
+
+parse_command({"submit", Status}, _Context) when is_integer(Status) ->
+    {ok, [{reply_submit_status, Status}]};
+parse_command({"submit", Plist}, _Context) when is_list(Plist) ->
+    Status = proplists:get_value("status", Plist, 0),
+    Timeout = proplists:get_value("timeout", Plist, 0),
+    {ok, [{sleep, Timeout}, {reply_submit_status, Status}]};
+parse_command({"receipt", Status}, Context) ->
+    case ?gv(registered_delivery, Context) of
+        0 ->
+            {ok, [nop]};
+        _ ->
+            case proplists:get_keys(Status) of
+                [] ->
+                    %% only status is given.
+                    Message = build_receipt(string:to_lower(Status), Context),
+                    {ok, [{send_deliver_sm, Message}]};
+                _ ->
+                    Status2 = proplists:get_value("status", Status, "delivered"),
+                    Timeout = proplists:get_value("timeout", Status, 0),
+                    Message = build_receipt(string:to_lower(Status2), Context),
+                    {ok, [{sleep, Timeout}, {send_deliver_sm, Message}]}
+            end
     end;
-parse_command("SLEEP=" ++ Time, _Context) ->
-    case parse_integer(Time) of
-        {ok, Time2} ->
-            {ok, {sleep, Time2}};
-        {error, bad_integer} ->
-            ?log_error("Failed to parse time: ~p. Proceed as normal message", [Time]),
-            error
-    end;
-parse_command("DELIVERY_STATUS=" ++ Status, Context) ->
-    Status2 = string:to_lower(Status),
-    Status3 = list_to_existing_atom(Status2),
-    Message = build_delivery_receipt(Status3, Context),
-    {ok, {send_deliver_sm, Message}};
-parse_command(_Chunk, _Context) ->
+parse_command({Command, null}, _Context) ->
+    ?log_error("Invalid command: ~p. Proceed as normal message", [Command]),
+    error;
+parse_command(Command, _Context) ->
+    ?log_error("Unknown command: ~p. Proceed as normal message", [Command]),
     error.
 
 perform_commands([], _Context) ->
@@ -345,36 +369,23 @@ perform_command({reply_submit_status, Status}, Context) ->
                 ?log_debug("Reply success (message_id: ~p)", [MsgId]),
                 {ok, [{message_id, integer_to_list(MsgId)}]};
             _ ->
-                ?log_debug("Reply failure (status: (0x~8.16.0B) ~s)", [Status, smpp_error:format(Status)]),
+                ?log_debug("Reply failure (status: 0x~8.16.0B, message: \"~s\")", [Status, smpp_error:format(Status)]),
                 {error, Status}
         end,
     Session = ?gv(session, Context),
     SeqNum = ?gv(seq_num, Context),
     gen_mc_session:reply(Session, {SeqNum, Reply});
-perform_command({sleep, Time}, _Context) ->
-    ?log_debug("Sleep ~p ms", [Time]),
-    timer:sleep(Time);
 perform_command({send_deliver_sm, Message}, Context) ->
     ?log_debug("Send deliver sm (message: ~p)", [Message]),
     Session = ?gv(session, Context),
-    gen_mc_session:deliver_sm(Session, Message).
+    gen_mc_session:deliver_sm(Session, Message);
+perform_command({sleep, Timeout}, _Context) when is_integer(Timeout) ->
+    ?log_debug("Sleep (timeout: ~p)", [Timeout]),
+    timer:sleep(1000 * Timeout);
+perform_command(nop, _Context) ->
+    ok.
 
-parse_integer("0x" ++ Hex) ->
-    case io_lib:fread("~16u", Hex) of
-        {ok, [Int], []} ->
-            {ok, Int};
-        _ ->
-            {error, bad_integer}
-    end;
-parse_integer(Int) ->
-    try
-        {ok, list_to_integer(Int)}
-    catch
-        _:_ ->
-            {error, bad_integer}
-    end.
-
-build_delivery_receipt(Status, Context) ->
+build_receipt(Status, Context) ->
     STon = ?gv(source_addr_ton, Context),
     SNpi = ?gv(source_addr_npi, Context),
     SAddr = ?gv(source_addr, Context),
@@ -423,18 +434,22 @@ build_delivery_receipt(Status, Context) ->
 %% Receipt statuses
 %% ===================================================================
 
-text_status(delivered)     -> "DELIVRD";
-text_status(expired)       -> "EXPIRED";
-text_status(deleted)       -> "DELETED";
-text_status(undeliverable) -> "UNDELIV";
-text_status(accepted)      -> "ACCEPTD";
-text_status(unknown)       -> "UNKNOWN";
-text_status(rejected)      -> "REJECTD".
+text_status("unroute")       -> "UNROUTE";
+text_status("delivered")     -> "DELIVRD";
+text_status("expired")       -> "EXPIRED";
+text_status("deleted")       -> "DELETED";
+text_status("undeliverable") -> "UNDELIV";
+text_status("accepted")      -> "ACCEPTD";
+text_status("unknown")       -> "UNKNOWN";
+text_status("rejected")      -> "REJECTD";
+text_status(Unknown)         -> Unknown.
 
-int_status(delivered)     -> 2;
-int_status(expired)       -> 3;
-int_status(deleted)       -> 4;
-int_status(undeliverable) -> 5;
-int_status(accepted)      -> 6;
-int_status(unknown)       -> 7;
-int_status(rejected)      -> 8.
+int_status("unroute")       -> 1;
+int_status("delivered")     -> 2;
+int_status("expired")       -> 3;
+int_status("deleted")       -> 4;
+int_status("undeliverable") -> 5;
+int_status("accepted")      -> 6;
+int_status("unknown")       -> 7;
+int_status("rejected")      -> 8;
+int_status(_Unknown)        -> 0.

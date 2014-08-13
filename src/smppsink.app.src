@@ -6,7 +6,8 @@
         kernel,
         stdlib,
         lager,
-        gproc
+        gproc,
+        yamerl
     ]},
     {mod, {smppsink_app, []}},
     {env, []}
