@@ -325,28 +325,14 @@ add_default_commands(Commands, Context) ->
             Commands
     end.
 
-parse_command({"submit", Status}, _Context) when is_integer(Status) ->
-    {ok, [{reply_submit_status, Status}]};
-parse_command({"submit", Plist}, _Context) when is_list(Plist) ->
-    Status = proplists:get_value("status", Plist, 0),
-    Timeout = proplists:get_value("timeout", Plist, 0),
-    {ok, [{sleep, Timeout}, {reply_submit_status, Status}]};
+parse_command({"submit", Status}, Context) ->
+    parse_submit_status(Status, Context);
 parse_command({"receipt", Status}, Context) ->
     case ?gv(registered_delivery, Context) of
         0 ->
             {ok, [nop]};
         _ ->
-            case proplists:get_keys(Status) of
-                [] ->
-                    %% only status is given.
-                    Message = build_receipt(string:to_lower(Status), Context),
-                    {ok, [{send_deliver_sm, Message}]};
-                _ ->
-                    Status2 = proplists:get_value("status", Status, "delivered"),
-                    Timeout = proplists:get_value("timeout", Status, 0),
-                    Message = build_receipt(string:to_lower(Status2), Context),
-                    {ok, [{sleep, Timeout}, {send_deliver_sm, Message}]}
-            end
+            parse_receipt_status(Status, Context)
     end;
 parse_command({Command, null}, _Context) ->
     ?log_error("Invalid command: ~p. Proceed as normal message", [Command]),
@@ -354,6 +340,26 @@ parse_command({Command, null}, _Context) ->
 parse_command(Command, _Context) ->
     ?log_error("Unknown command: ~p. Proceed as normal message", [Command]),
     error.
+
+parse_submit_status(Status, _Context) when is_integer(Status) ->
+    {ok, [{reply_submit_status, Status}]};
+parse_submit_status(Plist, _Context) when is_list(Plist) ->
+    Status = proplists:get_value("status", Plist, 0),
+    Timeout = proplists:get_value("timeout", Plist, 0),
+    {ok, [{sleep, Timeout}, {reply_submit_status, Status}]}.
+
+parse_receipt_status(Status, Context) ->
+    case proplists:get_keys(Status) of
+        [] ->
+            %% only status is given.
+            Message = build_receipt(string:to_lower(Status), Context),
+            {ok, [{send_deliver_sm, Message}]};
+        _ ->
+            Status2 = proplists:get_value("status", Status, "delivered"),
+            Timeout = proplists:get_value("timeout", Status, 0),
+            Message = build_receipt(string:to_lower(Status2), Context),
+            {ok, [{sleep, Timeout}, {send_deliver_sm, Message}]}
+    end.
 
 perform_commands([], _Context) ->
     ok;
@@ -369,7 +375,8 @@ perform_command({reply_submit_status, Status}, Context) ->
                 ?log_debug("Reply success (message_id: ~p)", [MsgId]),
                 {ok, [{message_id, integer_to_list(MsgId)}]};
             _ ->
-                ?log_debug("Reply failure (status: 0x~8.16.0B, message: \"~s\")", [Status, smpp_error:format(Status)]),
+                ?log_debug("Reply failure (status: 0x~8.16.0B, message: \"~s\")",
+                    [Status, smpp_error:format(Status)]),
                 {error, Status}
         end,
     Session = ?gv(session, Context),
