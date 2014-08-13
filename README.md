@@ -13,7 +13,35 @@ $ make
 </pre>
 
 ## Usage
+In order to run the examples below you need to have [smppload](https://github.com/PowerMeMobile/smppload).
 
+Return submit status 0x1 (invalid message length) after 1 sec
 <pre>
+$ smppload -P2776 -s375296660002 -d375296543210 -b"submit: {status: 1, timeout: 1}" -D -v
+INFO:  Connected to 127.0.0.1:2776
+INFO:  Bound to smppsink
+ERROR: Failed with: (0x00000001) Message Length is invalid.
+INFO:  Stats:
+INFO:     Send success:     0
+INFO:     Delivery success: 0
+INFO:     Send fail:        1
+INFO:     Delivery fail:    0
+INFO:     Errors:           0
+INFO:     Avg Rps:          0 mps
+INFO:  Unbound
+</pre>
 
+Return submit status 0x0 (success) after 1 sec, then send delivery receipt "DELIVERED" after 5 secs
+<pre>
+smppload -P2776 -s375296660002 -d375296543210 -b"{submit: {status: 0, timeout: 1}, receipt: {status: delivered, timeout: 5}}" -D -v
+INFO:  Connected to 127.0.0.1:2776
+INFO:  Bound to smppsink
+INFO:  Stats:
+INFO:     Send success:     1
+INFO:     Delivery success: 1
+INFO:     Send fail:        0
+INFO:     Delivery fail:    0
+INFO:     Errors:           0
+INFO:     Avg Rps:          0 mps
+INFO:  Unbound
 </pre>
