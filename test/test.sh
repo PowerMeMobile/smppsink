@@ -1,7 +1,7 @@
 #!/bin/bash
 
 HOST=localhost
-PORT=2776
+PORT=2775
 SYSTEM_TYPE=""
 SYSTEM_ID=user
 PASSWORD=password
