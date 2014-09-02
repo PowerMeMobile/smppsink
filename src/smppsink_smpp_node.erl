@@ -280,12 +280,23 @@ submit_sm_step(submit, {SeqNum, Params}, St) ->
 
 build_commands(Context) ->
     Message = ?gv(short_message, Context),
-    case yamerl_constr:string(Message) of
-        [Message] ->
+    case try_parse_commands(Message) of
+        {ok, Commands} ->
+            add_default_commands(handle_commands(Commands, Context), Context);
+        error ->
             ?log_error("Invalid commands: ~p. Proceed as normal message", [Message]),
-            default_commands(Context);
-        [Plist] ->
-            add_default_commands(handle_commands(Plist, Context), Context)
+            default_commands(Context)
+    end.
+
+try_parse_commands(Message) ->
+    try yamerl_constr:string(Message) of
+        [Message] ->
+            error;
+        [Commands] ->
+            {ok, Commands}
+    catch
+        _:_ ->
+            error
     end.
 
 handle_commands(Commands, Context) ->
