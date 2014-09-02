@@ -306,7 +306,7 @@ try_parse_commands(Message) ->
 
 try_fix_user_input(Message) ->
     Patterns = ["submit\s*:", "receipt\s*:"],
-    Checker = fun(Pattern) ->
+    Check = fun(Pattern) ->
         case re:run(Message, Pattern) of
             {match, _} ->
                 true;
@@ -314,7 +314,7 @@ try_fix_user_input(Message) ->
                 false
         end
     end,
-    case lists:any(Checker, Patterns) of
+    case lists:any(Check, Patterns) of
         true ->
             {ok, re:replace(Message, ":", ": ", [global, {return, list}])};
         false ->
