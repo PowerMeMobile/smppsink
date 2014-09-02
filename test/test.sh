@@ -67,4 +67,7 @@ check "{submit: {status: 0, timeout: 0}, receipt: {status: delivered, timeout: 0
 
 check "{submit: 1, receipt: unknown}" dlr with "ERROR: Failed with: (0x00000001)"
 
+# w/o spaces
+check "{submit:{status:0,timeout:0},receipt:{status:delivered,timeout:0}}" dlr with "stat:DELIVRD"
+
 exit $EXIT

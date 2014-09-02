@@ -289,13 +289,35 @@ build_commands(Context) ->
     end.
 
 try_parse_commands(Message) ->
-    try yamerl_constr:string(Message) of
-        [Message] ->
-            error;
-        [Commands] ->
-            {ok, Commands}
-    catch
-        _:_ ->
+    case try_fix_user_input(Message) of
+        {ok, Message2} ->
+            try yamerl_constr:string(Message2) of
+                [Message2] ->
+                    error;
+                [Commands] ->
+                    {ok, Commands}
+            catch
+                _:_ ->
+                    error
+            end;
+        error ->
+            error
+    end.
+
+try_fix_user_input(Message) ->
+    Patterns = ["submit\s*:", "receipt\s*:"],
+    Checker = fun(Pattern) ->
+        case re:run(Message, Pattern) of
+            {match, _} ->
+                true;
+            nomatch ->
+                false
+        end
+    end,
+    case lists:any(Checker, Patterns) of
+        true ->
+            {ok, re:replace(Message, ":", ": ", [global, {return, list}])};
+        false ->
             error
     end.
 
