@@ -474,7 +474,7 @@ build_receipt(Status, Context) ->
 %% Receipt statuses
 %% ===================================================================
 
-text_status("unroute")       -> "UNROUTE";
+text_status("enroute")       -> "ENROUTE";
 text_status("delivered")     -> "DELIVRD";
 text_status("expired")       -> "EXPIRED";
 text_status("deleted")       -> "DELETED";
@@ -482,9 +482,9 @@ text_status("undeliverable") -> "UNDELIV";
 text_status("accepted")      -> "ACCEPTD";
 text_status("unknown")       -> "UNKNOWN";
 text_status("rejected")      -> "REJECTD";
-text_status(Unknown)         -> Unknown.
+text_status(Unrecognized)    -> Unrecognized.
 
-int_status("unroute")       -> 1;
+int_status("enroute")       -> 1;
 int_status("delivered")     -> 2;
 int_status("expired")       -> 3;
 int_status("deleted")       -> 4;
@@ -492,4 +492,4 @@ int_status("undeliverable") -> 5;
 int_status("accepted")      -> 6;
 int_status("unknown")       -> 7;
 int_status("rejected")      -> 8;
-int_status(_Unknown)        -> 0.
+int_status(_Unrecognized)   -> 9.
