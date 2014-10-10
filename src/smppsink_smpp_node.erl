@@ -448,12 +448,12 @@ build_receipt(Status, Context) ->
         " text:",        lists:sublist(Message, 20)
     ]),
     Params33 = [
-        {source_addr_ton,  STon},
-        {source_addr_npi,  SNpi},
-        {source_addr,      SAddr},
-        {dest_addr_ton,    DTon},
-        {dest_addr_npi,    DNpi},
-        {destination_addr, DAddr},
+        {source_addr_ton,  DTon},
+        {source_addr_npi,  DNpi},
+        {source_addr,      DAddr},
+        {dest_addr_ton,    STon},
+        {dest_addr_npi,    SNpi},
+        {destination_addr, SAddr},
         {data_coding,      0},
         {short_message,    Message2},
         {esm_class,        4}
