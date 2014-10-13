@@ -26,15 +26,17 @@ function check() {
         with) invert_match=""
     esac
 
+    echo -en "$command\t$delivery\t"
+
     echo -n "$SRC_ADDR;$DST_ADDR;$command;$delivery_flag;3" |
     smppload --host=$HOST --port=$PORT --system_type=$SYSTEM_TYPE --system_id=$SYSTEM_ID --password=$PASSWORD \
         --file - -vv | grep $invert_match "$pattern" > /dev/null
 
     if [[ "$?" != 0 ]]; then
-        echo -e "$command\t$delivery\t\e[31mFAIL\e[0m"
+        echo -e "\e[31mFAIL\e[0m"
         EXIT=1
     else
-        echo -e "$command\t$delivery\t\e[32mOK\e[0m"
+        echo -e "\e[32mOK\e[0m"
     fi
 }
 
