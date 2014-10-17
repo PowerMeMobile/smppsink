@@ -1,7 +1,5 @@
 language: erlang
-script: "make"
-after_script:
-  - "test/test.sh"
+script: "make && test/test.sh"
 otp_release:
   - R16B03-1
 notifications:
