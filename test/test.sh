@@ -63,24 +63,24 @@ check "{submit: {status: 1}}" !dlr with "ERROR: Failed with: (0x00000001)"
 check "{submit: {status: 1, timeout: 0}}" !dlr with "ERROR: Failed with: (0x00000001)"
 
 
-check "receipt: delivered" !dlr w/o "stat:DELIVRD"
-check "receipt: delivered" dlr with "stat:DELIVRD"
+check "receipt: enroute" !dlr w/o "stat:ENROUTE"
+check "receipt: enroute" dlr with "stat:ENROUTE"
 
-check "receipt: {status: delivered}" dlr with "stat:DELIVRD"
-check "receipt: {status: delivered, timeout: 0}" dlr with "stat:DELIVRD"
+check "receipt: {status: enroute}" dlr with "stat:ENROUTE"
+check "receipt: {status: enroute, timeout: 0}" dlr with "stat:ENROUTE"
 
-check "{receipt: delivered}" dlr with "stat:DELIVRD"
-check "receipt: {status: delivered}" dlr with "stat:DELIVRD"
-check "receipt: {status: delivered, timeout: 0}" dlr with "stat:DELIVRD"
+check "{receipt: enroute}" dlr with "stat:ENROUTE"
+check "receipt: {status: enroute}" dlr with "stat:ENROUTE"
+check "receipt: {status: enroute, timeout: 0}" dlr with "stat:ENROUTE"
 
 
-check "{submit: 0, receipt: delivered}" dlr with "stat:DELIVRD"
-check "{submit: {status: 0, timeout: 0}, receipt: {status: delivered, timeout: 0}}" dlr with "stat:DELIVRD"
+check "{submit: 0, receipt: enroute}" dlr with "stat:ENROUTE"
+check "{submit: {status: 0, timeout: 0}, receipt: {status: enroute, timeout: 0}}" dlr with "stat:ENROUTE"
 
 check "{submit: 1, receipt: unknown}" dlr with "ERROR: Failed with: (0x00000001)"
 
 # w/o spaces
-check "{submit:{status:0,timeout:0},receipt:{status:delivered,timeout:0}}" dlr with "stat:DELIVRD"
+check "{submit:{status:0,timeout:0},receipt:{status:enroute,timeout:0}}" dlr with "stat:ENROUTE"
 
 # stop if wasn't running
 if [[ $start_ret == 0 ]]; then
