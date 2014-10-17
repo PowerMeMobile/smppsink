@@ -1,9 +1,7 @@
 language: erlang
 script: "make"
 after_script:
-  - "rel/smppsink/bin/smppsink start"
   - "test/test.sh"
-  - "rel/smppsink/bin/smppsink stop"
 otp_release:
   - R16B03-1
 notifications:

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+SCRIPT_DIR=$(dirname ${BASH_SOURCE[0]})
+
 HOST=localhost
 PORT=8002
 SYSTEM_TYPE=smpp
@@ -29,7 +31,7 @@ function check() {
     echo -en "$command\t$delivery\t"
 
     echo -n "$SRC_ADDR;$DST_ADDR;$command;$delivery_flag;3" |
-    smppload --host=$HOST --port=$PORT --system_type=$SYSTEM_TYPE --system_id=$SYSTEM_ID --password=$PASSWORD \
+    $SCRIPT_DIR/smppload --host=$HOST --port=$PORT --system_type=$SYSTEM_TYPE --system_id=$SYSTEM_ID --password=$PASSWORD \
         --file - -vv | grep $invert_match "$pattern" > /dev/null
 
     if [[ "$?" != 0 ]]; then
@@ -39,6 +41,14 @@ function check() {
         echo -e "\e[32mOK\e[0m"
     fi
 }
+
+# try to start
+$SCRIPT_DIR/../rel/smppsink/bin/smppsink start
+start_ret=$?
+if [[ $start_ret == 0 ]]; then
+    # give time to init
+    sleep 5
+fi
 
 check "submit: 0"   !dlr w/o "ERROR"
 check "submit: 0x0" !dlr w/o "ERROR"
@@ -71,5 +81,10 @@ check "{submit: 1, receipt: unknown}" dlr with "ERROR: Failed with: (0x00000001)
 
 # w/o spaces
 check "{submit:{status:0,timeout:0},receipt:{status:delivered,timeout:0}}" dlr with "stat:DELIVRD"
+
+# stop if wasn't running
+if [[ $start_ret == 0 ]]; then
+    $SCRIPT_DIR/../rel/smppsink/bin/smppsink stop > /dev/null
+fi
 
 exit $EXIT
