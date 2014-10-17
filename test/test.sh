@@ -43,7 +43,7 @@ function check() {
 }
 
 # try to start
-$SCRIPT_DIR/../rel/smppsink/bin/smppsink start
+$SCRIPT_DIR/../rel/smppsink/bin/smppsink start > /dev/null
 start_ret=$?
 if [[ $start_ret == 0 ]]; then
     # give time to init
