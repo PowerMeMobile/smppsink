@@ -23,22 +23,20 @@ function check() {
         dlr) delivery_flag=true
     esac
 
-    case "$invert" in
-        w/o) invert_match="--invert-match";;
-        with) invert_match=""
-    esac
-
     echo -en "$command\t$delivery\t"
 
     echo -n "$SRC_ADDR;$DST_ADDR;$command;$delivery_flag;3" |
     $SCRIPT_DIR/smppload --host=$HOST --port=$PORT --system_type=$SYSTEM_TYPE --system_id=$SYSTEM_ID --password=$PASSWORD \
-        --file - -vv | grep $invert_match "$pattern" > /dev/null
+        --file - -vv | grep "$pattern" > /dev/null
 
-    if [[ "$?" != 0 ]]; then
+    ret=$?
+    if [[ $ret == 0 && "$invert" == "with" ]]; then
+        echo -e "\e[32mOK\e[0m"
+    elif [[ $ret == 1 && "$invert" == "w/o" ]]; then
+        echo -e "\e[32mOK\e[0m"
+    else
         echo -e "\e[31mFAIL\e[0m"
         EXIT=1
-    else
-        echo -e "\e[32mOK\e[0m"
     fi
 }
 
