@@ -48,7 +48,7 @@ if [[ $start_ret == 0 ]]; then
     sleep 5
 fi
 
-check "submit: 1"   !dlr w/o "ERROR"
+check "submit: 0"   !dlr w/o "ERROR"
 check "submit: 0x0" !dlr w/o "ERROR"
 check "submit: 1"   !dlr with "ERROR: Failed with: (0x00000001)"
 check "submit: 0x1" !dlr with "ERROR: Failed with: (0x00000001)"
