@@ -2,13 +2,13 @@
 
 ## Prerequisites
 
-In order to compile and run **smppsink** you need to have [Erlang](http://www.erlang.org/) and make installed.
+In order to compile and **smppsink** you need to have [Erlang](http://www.erlang.org/) and [GNU Make](http://www.gnu.org/software/make/) installed.
 
 ## Compilation
 
 <pre>
 $ git https://github.com/PowerMeMobile/smppsink.git
-$ cd
+$ cd smppsink
 $ make
 </pre>
 
