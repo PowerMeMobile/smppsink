@@ -284,7 +284,7 @@ build_commands(Context) ->
         {ok, Commands} ->
             add_default_commands(handle_commands(Commands, Context), Context);
         error ->
-            ?log_error("Invalid commands: ~p. Proceed as normal message", [Message]),
+            ?log_debug("Invalid commands: ~p. Proceed as normal message", [Message]),
             default_commands(Context)
     end.
 
@@ -368,10 +368,10 @@ parse_command({"receipt", Status}, Context) ->
             parse_receipt_status(Status, Context)
     end;
 parse_command({Command, null}, _Context) ->
-    ?log_error("Invalid command: ~p. Proceed as normal message", [Command]),
+    ?log_debug("Invalid command: ~p. Proceed as normal message", [Command]),
     error;
 parse_command(Command, _Context) ->
-    ?log_error("Unknown command: ~p. Proceed as normal message", [Command]),
+    ?log_debug("Unknown command: ~p. Proceed as normal message", [Command]),
     error.
 
 parse_submit_status(Status, _Context) when is_integer(Status) ->
@@ -422,6 +422,8 @@ perform_command({send_deliver_sm, Message}, Context) ->
 perform_command({sleep, Timeout}, _Context) ->
     ?log_debug("Sleep (timeout: ~p)", [Timeout]),
     case Timeout of
+        0 ->
+            ok;
         infinity ->
             timer:sleep(infinity);
         Timeout when is_integer(Timeout) ->
