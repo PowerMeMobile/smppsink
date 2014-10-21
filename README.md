@@ -12,13 +12,20 @@ $ cd
 $ make
 </pre>
 
+## Starting/stopping
+
+<pre>
+$ rel/smppsink/bin/smppsink start
+$ rel/smppsink/bin/smppsink stop
+</pre>
+
 ## Usage
 In order to run the examples below you need to have [smppload](https://github.com/PowerMeMobile/smppload).
 
 Return submit status 0x1 (invalid message length) after 1 sec
 <pre>
-$ smppload -P2775 -s375296660002 -d375296543210 -b"submit: {status: 1, timeout: 1}" -D -v
-INFO:  Connected to 127.0.0.1:2775
+$ smppload -P8002 -tsmpp -itest -ptest -s375296660002 -d375296543210 -b"submit:{status:1,timeout:1}" -D
+INFO:  Connected to 127.0.0.1:8002
 INFO:  Bound to smppsink
 ERROR: Failed with: (0x00000001) Message Length is invalid.
 INFO:  Stats:
@@ -33,8 +40,8 @@ INFO:  Unbound
 
 Return submit status 0x0 (success) after 1 sec, then send delivery receipt "DELIVERED" after 5 secs
 <pre>
-smppload -P2775 -s375296660002 -d375296543210 -b"{submit: {status: 0, timeout: 1}, receipt: {status: delivered, timeout: 5}}" -D -v
-INFO:  Connected to 127.0.0.1:2775
+smppload -P8002 -tsmpp -itest -ptest -s375296660002 -d375296543210 -b"{submit:{status:0,timeout:1},receipt:{status:delivered,timeout:5}}" -D
+INFO:  Connected to 127.0.0.1:8002
 INFO:  Bound to smppsink
 INFO:  Stats:
 INFO:     Send success:     1
