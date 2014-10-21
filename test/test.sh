@@ -26,7 +26,9 @@ function check() {
     echo -en "$command\t$delivery\t"
 
     echo -n "$SRC_ADDR;$DST_ADDR;$command;$delivery_flag;3" |
-    $SCRIPT_DIR/smppload --host=$HOST --port=$PORT --system_type=$SYSTEM_TYPE --system_id=$SYSTEM_ID --password=$PASSWORD \
+    $SCRIPT_DIR/smppload --host=$HOST --port=$PORT \
+        --system_type=$SYSTEM_TYPE --system_id=$SYSTEM_ID --password=$PASSWORD \
+        --submit_timeout=5 --delivery_timeout=5 \
         --file - -vv | grep "$pattern" > /dev/null
 
     ret=$?
@@ -79,6 +81,12 @@ check "{submit: 1, receipt: unknown}" dlr with "ERROR: Failed with: (0x00000001)
 
 # w/o spaces
 check "{submit:{status:0,timeout:0},receipt:{status:enroute,timeout:0}}" dlr with "stat:ENROUTE"
+
+
+check "submit:{timeout:inf}" !dlr with "ERROR: Timeout"
+check "submit:{timeout:infinity}" !dlr with "ERROR: Timeout"
+check "receipt:{timeout:inf}" dlr with "ERROR: Delivery timeout"
+check "receipt:{timeout:infinity}" dlr with "ERROR: Delivery timeout"
 
 # stop if wasn't running
 if [[ $start_ret == 0 ]]; then

@@ -224,7 +224,7 @@ handle_closed(Node, Reason) ->
 
 handle_submit_sm(SeqNum, Params, St) ->
     ?log_debug("Got submit_sm: ~p", [Params]),
-    submit_sm_step(submit, {SeqNum, Params}, St).
+    spawn(fun() -> submit_sm_step(submit, {SeqNum, Params}, St) end).
 
 %% ===================================================================
 %% Internal
@@ -378,7 +378,7 @@ parse_submit_status(Status, _Context) when is_integer(Status) ->
     {ok, [{reply_submit_status, Status}]};
 parse_submit_status(Plist, _Context) when is_list(Plist) ->
     Status = proplists:get_value("status", Plist, 0),
-    Timeout = proplists:get_value("timeout", Plist, 0),
+    Timeout = parse_timeout(proplists:get_value("timeout", Plist, 0)),
     {ok, [{sleep, Timeout}, {reply_submit_status, Status}]}.
 
 parse_receipt_status(Status, Context) ->
@@ -389,7 +389,7 @@ parse_receipt_status(Status, Context) ->
             {ok, [{send_deliver_sm, Message}]};
         _ ->
             Status2 = proplists:get_value("status", Status, "delivered"),
-            Timeout = proplists:get_value("timeout", Status, 0),
+            Timeout = parse_timeout(proplists:get_value("timeout", Status, 0)),
             Message = build_receipt(string:to_lower(Status2), Context),
             {ok, [{sleep, Timeout}, {send_deliver_sm, Message}]}
     end.
@@ -419,9 +419,14 @@ perform_command({send_deliver_sm, Message}, Context) ->
     ?log_debug("Send deliver sm (message: ~p)", [Message]),
     Session = ?gv(session, Context),
     gen_mc_session:deliver_sm(Session, Message);
-perform_command({sleep, Timeout}, _Context) when is_integer(Timeout) ->
+perform_command({sleep, Timeout}, _Context) ->
     ?log_debug("Sleep (timeout: ~p)", [Timeout]),
-    timer:sleep(1000 * Timeout);
+    case Timeout of
+        infinity ->
+            timer:sleep(infinity);
+        Timeout when is_integer(Timeout) ->
+            timer:sleep(1000 * Timeout)
+    end;
 perform_command(nop, _Context) ->
     ok.
 
@@ -468,6 +473,20 @@ build_receipt(Status, Context) ->
                 {message_state, int_status(Status)}
                 | Params33
             ]
+    end.
+
+parse_timeout(Timeout) when is_integer(Timeout), Timeout >= 0 ->
+    Timeout;
+parse_timeout(Timeout) when is_integer(Timeout), Timeout < 0 ->
+    0;
+parse_timeout(Timeout) when is_list(Timeout) ->
+    case string:to_lower(Timeout) of
+        "inf" ->
+            infinity;
+        "infinity" ->
+            infinity;
+        _ ->
+            0
     end.
 
 %% ===================================================================
