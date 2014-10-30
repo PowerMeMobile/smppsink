@@ -2,7 +2,7 @@
 # -*- tab-width:4;indent-tabs-mode:nil -*-
 # ex: ts=4 sw=4 et
 
-ENTOP_NODE_ARG="-name entop@127.0.0.1"
+ENTOP_NODE_ARG="-name entop-smppsink@127.0.0.1"
 
 RUNNER_SCRIPT_DIR=$(cd ${0%/*} && pwd)
 
