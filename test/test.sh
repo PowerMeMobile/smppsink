@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SCRIPT_DIR=$(dirname ${BASH_SOURCE[0]})
-SMPPLOAD=$(which smppload 2>/dev/null || echo ./smppload)
+SMPPLOAD=$(which smppload 2>/dev/null || echo $SCRIPT_DIR/smppload)
 
 HOST=localhost
 PORT=2775
