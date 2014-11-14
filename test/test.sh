@@ -1,6 +1,7 @@
 #!/bin/bash
 
 SCRIPT_DIR=$(dirname ${BASH_SOURCE[0]})
+SMPPLOAD=$(which smppload 2>/dev/null || echo ./smppload)
 
 HOST=localhost
 PORT=2775
@@ -26,7 +27,7 @@ function check() {
     echo -en "$command\t$delivery\t"
 
     echo -n "$SRC_ADDR;$DST_ADDR;$command;$delivery_flag;3" |
-    $SCRIPT_DIR/smppload --host=$HOST --port=$PORT \
+    $SMPPLOAD --host=$HOST --port=$PORT \
         --system_type=$SYSTEM_TYPE --system_id=$SYSTEM_ID --password=$PASSWORD \
         --submit_timeout=5 --delivery_timeout=5 \
         --file - -vv | grep "$pattern" > /dev/null
