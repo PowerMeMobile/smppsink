@@ -1,0 +1,13 @@
+#!/bin/bash
+pkg_name=%{name}
+pkg_ver=%{version}
+prj_name=${pkg_name#pmm-}
+dir_name=/opt/${prj_name}-${pkg_ver}
+lnk_name=/opt/${prj_name}
+lnk_to=$(readlink ${lnk_name})
+if [[ ! -z ${lnk_to} ]]; then
+    if [[ ${lnk_to%/} == ${dir_name} ]]; then
+        echo "rm -rf ${lnk_name?}*"
+        rm -rf ${lnk_name?}*
+    fi
+fi

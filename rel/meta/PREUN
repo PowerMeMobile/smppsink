@@ -1,0 +1,14 @@
+#!/bin/bash
+pkg_name=%{name}
+pkg_ver=%{version}
+prj_name=${pkg_name#pmm-}
+dir_name=/opt/${prj_name}-${pkg_ver}
+lnk_name=/opt/${prj_name}
+lnk_to=$(readlink ${lnk_name})
+#echo "${lnk_name}/bin/${prj_name} ping"
+result=$(${lnk_name}/bin/${prj_name} ping)
+#echo $result
+if [[ "$result" == "pong" ]]; then
+   echo "${lnk_name}/bin/${prj_name} stop"
+   ${lnk_name}/bin/${prj_name} stop
+fi

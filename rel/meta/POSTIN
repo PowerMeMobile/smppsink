@@ -1,0 +1,17 @@
+#!/bin/bash
+pkg_name=%{name}
+pkg_ver=%{version}
+prj_name=${pkg_name#pmm-}
+dir_name=/opt/${prj_name}-${pkg_ver}
+lnk_name=/opt/${prj_name}
+now_date=$(date +%FT%T)
+lnk_to=$(readlink ${lnk_name})
+if [[ ! -z ${lnk_to} ]]; then
+    echo "${lnk_name} -> ${lnk_to} already exists"
+    echo "unlink ${lnk_name}"
+    unlink ${lnk_name}
+    echo "mv ${lnk_to} ${lnk_to%/}-${now_date}/"
+    mv ${lnk_to} ${lnk_to%/}-${now_date}/
+fi
+echo "ln -s ${dir_name}/ ${lnk_name}"
+ln -s ${dir_name}/ ${lnk_name}

@@ -1,0 +1,24 @@
+#!/bin/bash
+
+if [ $# -ne 2 ]; then
+    echo "Usage:   make_tar VERSION OS"
+    echo "Example: make_tar 1.2.1 centos6"
+    exit 1
+fi
+
+version=$1
+os=$2
+arch=`uname -m`
+
+prj_name=`cat meta/NAME`
+dir_name=${prj_name}-${version}
+tar_name=${prj_name}-${version}-${os}.${arch}.tar.gz
+
+cp -r ${prj_name} ${dir_name}
+
+cp -r meta ${dir_name}/
+echo ${version} > ${dir_name}/meta/VERSION
+echo ${os}      > ${dir_name}/meta/RELEASE
+echo ${arch}    > ${dir_name}/meta/TARGET
+
+tar cfz ${tar_name} ${dir_name}/*
