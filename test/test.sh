@@ -3,7 +3,7 @@
 SCRIPT_DIR=$(dirname ${BASH_SOURCE[0]})
 
 HOST=localhost
-PORT=8002
+PORT=2775
 SYSTEM_TYPE=smpp
 SYSTEM_ID=test
 PASSWORD=test
