@@ -381,7 +381,7 @@ parse_submit_status(Plist, _Context) when is_list(Plist) ->
     Timeout = parse_timeout(proplists:get_value("timeout", Plist, 0)),
     {ok, [{sleep, Timeout}, {reply_submit_status, Status}]}.
 
-parse_receipt_status(Status, Context) ->
+parse_receipt_status(Status, Context) when is_list(Status) ->
     case proplists:get_keys(Status) of
         [] ->
             %% only status is given.
@@ -392,7 +392,12 @@ parse_receipt_status(Status, Context) ->
             Timeout = parse_timeout(proplists:get_value("timeout", Status, 0)),
             Message = build_receipt(string:to_lower(Status2), Context),
             {ok, [{sleep, Timeout}, {send_deliver_sm, Message}]}
-    end.
+    end;
+parse_receipt_status(Status, Context) ->
+    %% build status from what we got.
+    Status2 = lists:flatten(io_lib:format("~p", [Status])),
+    Message = build_receipt(Status2, Context),
+    {ok, [{send_deliver_sm, Message}]}.
 
 perform_commands([], _Context) ->
     ok;

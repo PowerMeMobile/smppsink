@@ -89,6 +89,14 @@ check "submit:{timeout:infinity}" !dlr with "ERROR: Timeout"
 check "receipt:{timeout:inf}" dlr with "ERROR: Delivery timeout"
 check "receipt:{timeout:infinity}" dlr with "ERROR: Delivery timeout"
 
+
+# allow receipt status to be any string and integer
+check "receipt:abc" dlr with "stat:abc"
+check "receipt:{status:abc}" dlr with "stat:abc"
+check "receipt:123" dlr with "stat:123"
+check "receipt:{status:123}" dlr with "stat:123"
+
+
 # stop if wasn't running
 if [[ $start_ret == 0 ]]; then
     $SCRIPT_DIR/../rel/smppsink/bin/smppsink stop > /dev/null
