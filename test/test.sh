@@ -20,17 +20,17 @@ function check() {
     local pattern="$4"
 
     case "$delivery" in
-        !dlr) delivery_flag=false;;
-        dlr) delivery_flag=true
+        !dlr) dlr_flag=0;;
+        dlr) dlr_flag=1
     esac
 
     echo -en "$command\t$delivery\t"
 
-    echo -n "$SRC_ADDR;$DST_ADDR;$command;$delivery_flag;3" |
     $SMPPLOAD --host=$HOST --port=$PORT \
         --system_type=$SYSTEM_TYPE --system_id=$SYSTEM_ID --password=$PASSWORD \
-        --submit_timeout=5 --delivery_timeout=5 \
-        --file - -vv | grep "$pattern" > /dev/null
+        --source=$SRC_ADDR --destination=$DST_ADDR --body="$command" \
+        --delivery=$dlr_flag --submit_timeout=5000 --delivery_timeout=5000 \
+        -vv | grep "$pattern" > /dev/null
 
     ret=$?
     if [[ $ret == 0 && "$invert" == "with" ]]; then
