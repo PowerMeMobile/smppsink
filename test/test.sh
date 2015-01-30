@@ -96,6 +96,25 @@ check "receipt:{status:abc}" dlr with "stat:abc"
 check "receipt:123" dlr with "stat:123"
 check "receipt:{status:123}" dlr with "stat:123"
 
+#
+check "submit:{status:[]}" !dlr w/o "ERROR"
+check "submit:{status:[]}" dlr with "stat:DELIVRD"
+
+check "submit:{status:{code:1,freq:1.0}}" !dlr with "ERROR: Failed with: (0x00000001)"
+check "submit:{status:[{code:1,freq:1.0}]}" !dlr with "ERROR: Failed with: (0x00000001)"
+
+# for both below
+#check "submit:{status:[{code:1,freq:0.3}]} !dlr with ""
+#check "submit:{status:[{code:0,freq:0.3},{code:1,freq:0.7}]}
+# something like
+#INFO:  Stats:
+#INFO:     Send success:     70
+#INFO:     Delivery success: 70
+#INFO:     Send fail:        30
+#INFO:     Delivery fail:    0
+#INFO:     Errors:           0
+#INFO:     Avg Rps:          101 mps
+#INFO:  Unbound
 
 # stop if wasn't running
 if [[ $start_ret == 0 ]]; then

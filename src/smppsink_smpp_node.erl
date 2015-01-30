@@ -340,8 +340,21 @@ default_commands(Context) ->
 add_default_commands(Commands, Context) ->
     case proplists:get_value(reply_submit_status, Commands) of
         undefined ->
-            add_default_commands([{reply_submit_status, 0} | Commands], Context);
-        0 ->
+            add_default_commands([{reply_submit_status, {code, 0}} | Commands], Context);
+        {code, 0} ->
+            case ?gv(registered_delivery, Context) of
+                0 ->
+                    Commands;
+                _ ->
+                    case proplists:get_value(send_deliver_sm, Commands) of
+                        undefined ->
+                            Message = build_receipt("delivered", Context),
+                            Commands ++ [{send_deliver_sm, Message}];
+                        _ ->
+                            Commands
+                    end
+            end;
+        {freq, _} ->
             case ?gv(registered_delivery, Context) of
                 0 ->
                     Commands;
@@ -375,9 +388,9 @@ parse_command(Command, _Context) ->
     error.
 
 parse_submit_status_command(Status, _Context) when is_integer(Status) ->
-    {ok, [{reply_submit_status, Status}]};
+    {ok, [{reply_submit_status, {code, Status}}]};
 parse_submit_status_command(Plist, _Context) when is_list(Plist) ->
-    Status = proplists:get_value("status", Plist, 0),
+    Status = parse_submit_status(proplists:get_value("status", Plist, 0)),
     Timeout = parse_timeout(proplists:get_value("timeout", Plist, 0)),
     {ok, [{sleep, Timeout}, {reply_submit_status, Status}]}.
 
@@ -399,23 +412,82 @@ parse_receipt_status_command(Status, Context) ->
     Message = build_receipt(Status2, Context),
     {ok, [{send_deliver_sm, Message}]}.
 
+parse_submit_status(Status) when is_integer(Status) ->
+    {code, Status};
+parse_submit_status(Status) when is_list(Status) ->
+    case Status of
+        %% submit:{status:[{code:1,freq:1.0}]} -> [[{"code",1},{"freq",1.0}]]
+        [L|_] when is_list(L) ->
+            %io:format("1~n"),
+            Freqs = [parse_freq_status(F) || F <- Status],
+            {freq, Freqs};
+        %% submit:{status:{code:1,freq:1.0}} -> [{"code",1},{"freq",1.0}]
+        Status ->
+            %io:format("2~n"),
+            Freqs = [parse_freq_status(Status)],
+            {freq, Freqs}
+    end.
+
+parse_freq_status(Freqs) ->
+    Code = proplists:get_value("code", Freqs, 0),
+    Freq = proplists:get_value("freq", Freqs, 0.0),
+    {Code, Freq}.
+
 perform_commands([], _Context) ->
     ok;
 perform_commands([Command | Commands], Context) ->
     perform_command(Command, Context),
     perform_commands(Commands, Context).
 
+calc_freqs_distribution(Freqs) ->
+    {_, Distr} = lists:foldl(
+        fun({Code, Freq}, {FreqFrom, Acc}) ->
+            FreqTo = FreqFrom + Freq,
+            {FreqTo, Acc ++ [{Code, FreqFrom, FreqTo}]}
+        end,
+        {0, []},
+        Freqs
+    ),
+    Distr.
+
+%% TODO: make it w/o side effects
+choose_submit_outcome(Freqs) ->
+    Distr = calc_freqs_distribution(Freqs),
+    Seed = now(),
+    {Rand, _Seed2} = random:uniform_s(Seed),
+    io:format("Seed:~p Rand:~p ~n", [Seed, Rand]),
+    Outcome = ac_lists:findwith(
+        fun({_Code, FF, FT}) -> Rand >= FF andalso Rand < FT end, Distr),
+    case Outcome of
+        {value, {Code, _FF, _FT}} ->
+            {code, Code};
+        false ->
+            {code, 0}
+    end.
+
 perform_command({reply_submit_status, Status}, Context) ->
     Reply =
         case Status of
-            0 ->
+            {code, 0} ->
                 MsgId = ?gv(msg_id, Context),
                 ?log_debug("Reply success (message_id: ~p)", [MsgId]),
                 {ok, [{message_id, integer_to_list(MsgId)}]};
-            _ ->
+            {code, Code} ->
                 ?log_debug("Reply failure (status: 0x~8.16.0B, message: \"~s\")",
-                    [Status, smpp_error:format(Status)]),
-                {error, Status}
+                    [Code, smpp_error:format(Code)]),
+                {error, Code};
+            {freq, Freqs} ->
+                %% TODO: give seed to the function.
+                case choose_submit_outcome(Freqs) of
+                    {code, 0} ->
+                        MsgId = ?gv(msg_id, Context),
+                        ?log_debug("Reply success (message_id: ~p)", [MsgId]),
+                        {ok, [{message_id, integer_to_list(MsgId)}]};
+                    {code, Code} ->
+                        ?log_debug("Reply failure (status: 0x~8.16.0B, message: \"~s\")",
+                            [Code, smpp_error:format(Code)]),
+                        {error, Code}
+                end
         end,
     Session = ?gv(session, Context),
     SeqNum = ?gv(seq_num, Context),
