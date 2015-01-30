@@ -359,13 +359,13 @@ add_default_commands(Commands, Context) ->
     end.
 
 parse_command({"submit", Status}, Context) ->
-    parse_submit_status(Status, Context);
+    parse_submit_status_command(Status, Context);
 parse_command({"receipt", Status}, Context) ->
     case ?gv(registered_delivery, Context) of
         0 ->
             {ok, [nop]};
         _ ->
-            parse_receipt_status(Status, Context)
+            parse_receipt_status_command(Status, Context)
     end;
 parse_command({Command, null}, _Context) ->
     ?log_debug("Invalid command: ~p. Proceed as normal message", [Command]),
@@ -374,14 +374,14 @@ parse_command(Command, _Context) ->
     ?log_debug("Unknown command: ~p. Proceed as normal message", [Command]),
     error.
 
-parse_submit_status(Status, _Context) when is_integer(Status) ->
+parse_submit_status_command(Status, _Context) when is_integer(Status) ->
     {ok, [{reply_submit_status, Status}]};
-parse_submit_status(Plist, _Context) when is_list(Plist) ->
+parse_submit_status_command(Plist, _Context) when is_list(Plist) ->
     Status = proplists:get_value("status", Plist, 0),
     Timeout = parse_timeout(proplists:get_value("timeout", Plist, 0)),
     {ok, [{sleep, Timeout}, {reply_submit_status, Status}]}.
 
-parse_receipt_status(Status, Context) when is_list(Status) ->
+parse_receipt_status_command(Status, Context) when is_list(Status) ->
     case proplists:get_keys(Status) of
         [] ->
             %% only status is given.
@@ -393,7 +393,7 @@ parse_receipt_status(Status, Context) when is_list(Status) ->
             Message = build_receipt(string:to_lower(Status2), Context),
             {ok, [{sleep, Timeout}, {send_deliver_sm, Message}]}
     end;
-parse_receipt_status(Status, Context) ->
+parse_receipt_status_command(Status, Context) ->
     %% build status from what we got.
     Status2 = lists:flatten(io_lib:format("~p", [Status])),
     Message = build_receipt(Status2, Context),
