@@ -305,18 +305,20 @@ try_parse_commands(Message) ->
     end.
 
 try_fix_user_input(Message) ->
-    Patterns = ["submit\s*:", "receipt\s*:"],
+    Message2 = re:replace(Message, "\e\\(", "{", [global, {return, list}]),
+    Message3 = re:replace(Message2, "\e\\)", "}", [global, {return, list}]),
     Check = fun(Pattern) ->
-        case re:run(Message, Pattern) of
+        case re:run(Message3, Pattern) of
             {match, _} ->
                 true;
             nomatch ->
                 false
         end
     end,
+    Patterns = ["submit\s*:", "receipt\s*:"],
     case lists:any(Check, Patterns) of
         true ->
-            {ok, re:replace(Message, ":", ": ", [global, {return, list}])};
+            {ok, re:replace(Message3, ":", ": ", [global, {return, list}])};
         false ->
             error
     end.
