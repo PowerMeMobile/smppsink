@@ -4,7 +4,11 @@ SCRIPT_DIR=$(dirname ${BASH_SOURCE[0]})
 SMPPLOAD=$(which smppload 2>/dev/null || echo $SCRIPT_DIR/smppload)
 
 HOST=localhost
-PORT=2775
+
+if [[ "$PORT" == "" ]]; then
+    PORT=2775
+fi
+
 SYSTEM_TYPE=smpp
 SYSTEM_ID=test
 PASSWORD=test

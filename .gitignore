@@ -3,3 +3,5 @@ ebin/*
 priv/*
 rel/smppsink
 TAGS
+haproxy*
+.eunit
