@@ -42,11 +42,11 @@ function check() {
 
     ret=$?
     if [[ $ret == 0 && "$invert" == "with" ]]; then
-        echo -e "\e[32mOK\e[0m"
+        printf "\e[32mOK\e[0m\n"
     elif [[ $ret == 1 && "$invert" == "w/o" ]]; then
-        echo -e "\e[32mOK\e[0m"
+        printf "\e[32mOK\e[0m\n"
     else
-        echo -e "\e[31mFAIL\e[0m"
+        printf "\e[31mFAIL\e[0m\n"
         EXIT=1
     fi
 }
