@@ -71,4 +71,6 @@ default_env(log_smpp_pdus) ->
 default_env(smpp_pdu_log_dir) ->
     "log/smpp";
 default_env(file_log_size) ->
-    5000000.
+    5000000;
+default_env(_) ->
+    undefined.

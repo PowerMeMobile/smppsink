@@ -46,9 +46,19 @@ accepted() ->
 init([]) ->
     Addr = smppsink_app:get_env(addr),
     Port = smppsink_app:get_env(port),
+    CACertFile = smppsink_app:get_env(cacertfile),
+    CertFile = smppsink_app:get_env(certfile),
+    KeyFile = smppsink_app:get_env(keyfile),
     ?log_info("Starting SMPP server (addr: ~s, port: ~w)",
         [inet_parse:ntoa(Addr), Port]),
-    case smpp_session:listen([{addr, Addr}, {port, Port}]) of
+    ListenOpts = [
+        {addr, Addr},
+        {port, Port},
+        {cacertfile, CACertFile},
+        {certfile, CertFile},
+        {keyfile, KeyFile}
+    ],
+    case smpp_session:listen(ListenOpts) of
         {ok, LSock} ->
             {ok, start_new_node(#st{lsock = LSock})};
         {error, Reason} ->
