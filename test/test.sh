@@ -41,7 +41,7 @@ function check() {
     $SMPPLOAD --host=$HOST --port=$PORT \
         --system_type=$SYSTEM_TYPE --system_id=$SYSTEM_ID --password=$PASSWORD \
         --source=$SRC_ADDR --destination=$DST_ADDR --body="$command" --data_coding="$encoding" \
-        --delivery=$dlr_flag --submit_timeout=5000 --delivery_timeout=5000 \
+        --delivery=$dlr_flag --submit_timeout=5000 --delivery_timeout=5000 --ssl \
         -vv | grep "$pattern" > /dev/null
 
     ret=$?
