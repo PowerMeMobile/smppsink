@@ -52,3 +52,5 @@ INFO:     Errors:           0
 INFO:     Avg Rps:          0 mps
 INFO:  Unbound
 </pre>
+
+[More examples](https://github.com/PowerMeMobile/smppsink/blob/master/test/test.sh)
