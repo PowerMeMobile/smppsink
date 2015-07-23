@@ -108,7 +108,12 @@ handle_call({handle_bind, BindType, SystemType, SystemId, Password, Version}, _F
                 "(bind_type: ~p, system_type: ~s, system_id: ~s, password: ~s)",
                 [BindType, SystemType, SystemId, Password]),
 
-            Params = [{system_id, smppsink_app:get_env(server_name)}],
+            NameAndVsn = lists:sublist(
+                lists:flatten([
+                    smppsink_app:get_env(server_name), " ",
+                    smppsink_app:get_env(vsn)]),
+                15), %% bind resp system_id length
+            Params = [{system_id,  NameAndVsn}],
             {reply, {ok, Params}, St#st{
                 is_bound = true,
                 system_type = list_to_binary(SystemType),

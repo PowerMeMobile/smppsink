@@ -34,6 +34,9 @@ stop(_State) ->
 %% ===================================================================
 
 -spec get_env(atom()) -> any().
+get_env(vsn) ->
+    {ok, Vsn} = application:get_key(?APP, vsn),
+    Vsn;
 get_env(Key) ->
     case application:get_env(?APP, Key) of
         undefined ->

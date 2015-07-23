@@ -44,6 +44,8 @@ accepted() ->
 %% ===================================================================
 
 init([]) ->
+    Vsn = smppsink_app:get_env(vsn),
+    ?log_info("Version: ~s", [Vsn]),
     Addr = smppsink_app:get_env(addr),
     Port = smppsink_app:get_env(port),
     ?log_info("Starting SMPP server (addr: ~s, port: ~w)",
