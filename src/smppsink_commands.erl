@@ -32,6 +32,8 @@ try_parse_commands(Message) ->
     case try_fix_user_input(Message) of
         {ok, Message2} ->
             try yamerl_constr:string(Message2) of
+                [] ->
+                    error;
                 [Message2] ->
                     error;
                 [Commands] ->
@@ -80,37 +82,44 @@ default_commands(Context) ->
     add_default_commands([], Context).
 
 add_default_commands(Commands, Context) ->
-    case proplists:get_value(reply_submit_status, Commands) of
+    %% !!! keep add_default_seed the first !!!
+    add_default_seed(
+        add_default_reply_submit_status(Commands, Context),
+        Context
+    ).
+
+add_default_reply_submit_status(Commands, Context) ->
+    case ?gv(reply_submit_status, Commands) of
         undefined ->
             add_default_commands([{reply_submit_status, {code, 0}} | Commands], Context);
         {code, 0} ->
-            case ?gv(registered_delivery, Context) of
-                0 ->
-                    Commands;
-                _ ->
-                    case proplists:get_value(send_deliver_sm, Commands) of
-                        undefined ->
-                            Message = build_receipt("delivered", Context),
-                            Commands ++ [{send_deliver_sm, Message}];
-                        _ ->
-                            Commands
-                    end
-            end;
+            add_default_send_deliver_sm(Commands, Context);
         {freq, _} ->
-            case ?gv(registered_delivery, Context) of
-                0 ->
-                    Commands;
-                _ ->
-                    case proplists:get_value(send_deliver_sm, Commands) of
-                        undefined ->
-                            Message = build_receipt("delivered", Context),
-                            Commands ++ [{send_deliver_sm, Message}];
-                        _ ->
-                            Commands
-                    end
-            end;
+             add_default_send_deliver_sm(Commands, Context);
         _ ->
             Commands
+    end.
+
+add_default_seed(Commands, _Context) ->
+    case ?gv(seed, Commands) of
+        undefined ->
+            [{seed, now()} | Commands];
+        Seed ->
+            [{seed, Seed} | Commands]
+    end.
+
+add_default_send_deliver_sm(Commands, Context) ->
+    case ?gv(registered_delivery, Context) of
+        0 ->
+            Commands;
+        _ ->
+            case ?gv(send_deliver_sm, Commands) of
+                undefined ->
+                    Message = build_receipt("delivered", Context),
+                    Commands ++ [{send_deliver_sm, Message}];
+                _ ->
+                    Commands
+            end
     end.
 
 parse_command({"submit", Status}, Context) ->
@@ -122,6 +131,8 @@ parse_command({"receipt", Status}, Context) ->
         _ ->
             parse_receipt_status_command(Status, Context)
     end;
+parse_command({"seed", Seed}, Context) ->
+    parse_seed_command(Seed, Context);
 parse_command({Command, null}, _Context) ->
     ?log_debug("Invalid command: ~p. Proceed as normal message", [Command]),
     error;
@@ -154,6 +165,13 @@ parse_receipt_status_command(Status, Context) ->
     Message = build_receipt(Status2, Context),
     {ok, [{send_deliver_sm, Message}]}.
 
+parse_seed_command([A1,A2,A3], _Context) when is_integer(A1),
+                                              is_integer(A2),
+                                              is_integer(A3) ->
+    {ok, [{seed, {A1,A2,A3}}]};
+parse_seed_command(_Seed, _Context) ->
+    error.
+
 parse_submit_status(Status) when is_integer(Status) ->
     {code, Status};
 parse_submit_status(Status) when is_list(Status) ->
@@ -175,8 +193,6 @@ parse_freq_status(Freqs) ->
     Freq = proplists:get_value("freq", Freqs, 0.0),
     {Value, Freq}.
 
-
-
 parse_delay(Time) when is_integer(Time), Time >= 0 ->
     Time;
 parse_delay(Time) when is_integer(Time), Time < 0 ->
@@ -184,8 +200,6 @@ parse_delay(Time) when is_integer(Time), Time < 0 ->
 parse_delay(Time) when is_list(Time) ->
     case string:to_lower(Time) of
         "inf" ->
-            infinity;
-        "infinity" ->
             infinity;
         _ ->
             0

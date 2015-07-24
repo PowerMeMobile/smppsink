@@ -80,6 +80,7 @@ init(LSock) ->
     {ok, #st{smpp_log_mgr = SMPPLogMgr, mc_session = Session}}.
 
 terminate(_Reason, St) ->
+    ok = smppsink_store:delete({seed, St#st.mc_session}),
     catch(gen_mc_session:stop(St#st.mc_session)),
     catch(pmm_smpp_logger_h:deactivate(St#st.smpp_log_mgr)),
     catch(smpp_log_mgr:stop(St#st.smpp_log_mgr)).
@@ -270,10 +271,11 @@ authenticate_step(register, BindType, SystemType, SystemId, _Password) ->
 
 submit_sm_step(submit, {SeqNum, Params}, St) ->
     MsgId = smppsink_id_map:next_id(St#st.system_type, St#st.system_id),
+    Session = St#st.mc_session,
     Context = [
         {seq_num, SeqNum},
         {msg_id, MsgId},
-        {session, St#st.mc_session},
+        {session, Session},
         {system_type, St#st.system_type},
         {system_id, St#st.system_id},
         {version, St#st.version}
@@ -282,7 +284,6 @@ submit_sm_step(submit, {SeqNum, Params}, St) ->
     Commands = smppsink_commands:build_commands(Context),
     perform_commands(Commands, Context).
 
-
 perform_commands([], _Context) ->
     ok;
 perform_commands([Command | Commands], Context) ->
@@ -290,6 +291,7 @@ perform_commands([Command | Commands], Context) ->
     perform_commands(Commands, Context).
 
 perform_command({reply_submit_status, Status}, Context) ->
+    Session = ?gv(session, Context),
     Reply =
         case Status of
             {code, 0} ->
@@ -301,19 +303,22 @@ perform_command({reply_submit_status, Status}, Context) ->
                     [Code, smpp_error:format(Code)]),
                 {error, Code};
             {freq, Freqs} ->
-                %% TODO: give seed to the function.
-                case choose_submit_outcome(Freqs) of
-                    {code, 0} ->
-                        MsgId = ?gv(msg_id, Context),
-                        ?log_debug("Reply success (message_id: ~p)", [MsgId]),
-                        {ok, [{message_id, integer_to_list(MsgId)}]};
-                    {code, Code} ->
-                        ?log_debug("Reply failure (status: 0x~8.16.0B, message: \"~s\")",
-                            [Code, smpp_error:format(Code)]),
-                        {error, Code}
+                {ok, Seed} = smppsink_store:get({seed, Session}),
+                case choose_submit_code(Freqs, Seed) of
+                    {Code, Seed2} ->
+                        ok = smppsink_store:set({seed, Session}, Seed2),
+                        if
+                            Code =:= 0 ->
+                                MsgId = ?gv(msg_id, Context),
+                                ?log_debug("Reply success (message_id: ~p)", [MsgId]),
+                                {ok, [{message_id, integer_to_list(MsgId)}]};
+                            true ->
+                                ?log_debug("Reply failure (status: 0x~8.16.0B, message: \"~s\")",
+                                    [Code, smpp_error:format(Code)]),
+                                {error, Code}
+                        end
                 end
         end,
-    Session = ?gv(session, Context),
     SeqNum = ?gv(seq_num, Context),
     gen_mc_session:reply(Session, {SeqNum, Reply});
 perform_command({send_deliver_sm, Message}, Context) ->
@@ -331,23 +336,23 @@ perform_command({sleep, Time}, _Context) ->
         Time when is_integer(Time) ->
             timer:sleep(1000 * Time)
     end;
+perform_command({seed, Seed}, Context) ->
+    Session = ?gv(session, Context),
+    smppsink_store:new({seed, Session}, Seed),
+    ok;
 perform_command(nop, _Context) ->
     ok.
 
-%% TODO: make it w/o side effects
-%% TODO: move to smppsink_commands
-choose_submit_outcome(Freqs) ->
+choose_submit_code(Freqs, Seed) ->
     Distr = calc_freqs_distribution(Freqs),
-    Seed = now(),
-    {Rand, _Seed2} = random:uniform_s(Seed),
-    io:format("Seed:~p Rand:~p ~n", [Seed, Rand]),
+    {Rand, Seed2} = random:uniform_s(Seed),
     Outcome = ac_lists:findwith(
         fun({_Code, FF, FT}) -> Rand >= FF andalso Rand < FT end, Distr),
     case Outcome of
         {value, {Code, _FF, _FT}} ->
-            {code, Code};
+            {Code, Seed2};
         false ->
-            {code, 0}
+            {0, Seed2}
     end.
 
 calc_freqs_distribution(Freqs) ->

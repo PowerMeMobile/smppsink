@@ -19,6 +19,7 @@ function check() {
     local delivery="$3"
     local invert="$4"
     local pattern="$5"
+    local count=${6-1}
 
     case "$delivery" in
         !dlr) dlr_flag=0;;
@@ -37,7 +38,7 @@ function check() {
     $SMPPLOAD --host=$HOST --port=$PORT \
         --system_type=$SYSTEM_TYPE --system_id=$SYSTEM_ID --password=$PASSWORD \
         --source=$SRC_ADDR --destination=$DST_ADDR --body="$command" --data_coding="$encoding" \
-        --delivery=$dlr_flag --submit_timeout=5000 --delivery_timeout=5000 \
+        --delivery=$dlr_flag --submit_timeout=5000 --delivery_timeout=5000 --count=$count \
         -vv | grep "$pattern" > /dev/null
 
     ret=$?
@@ -99,10 +100,7 @@ check "submit:{status:1}" latin1 !dlr with "ERROR: Failed with: (0x00000001)"
 #check "submit:{status:1}" ucs2 !dlr with "ERROR: Failed with: (0x00000001)"
 
 check "submit:{delay:inf}" latin1 !dlr with "ERROR: Timeout"
-check "submit:{delay:infinity}" latin1 !dlr with "ERROR: Timeout"
 check "receipt:{delay:inf}" latin1 dlr with "ERROR: Delivery timeout"
-check "receipt:{delay:infinity}" latin1 dlr with "ERROR: Delivery timeout"
-
 
 # allow receipt status to be any string and integer
 check "receipt:abc" latin1 dlr with "stat:abc"
@@ -117,18 +115,8 @@ check "submit:{status:[]}" latin1 dlr with "stat:DELIVRD"
 check "submit:{status:{value:1,freq:1.0}}" latin1 !dlr with "ERROR: Failed with: (0x00000001)"
 check "submit:{status:[{value:1,freq:1.0}]}" latin1 !dlr with "ERROR: Failed with: (0x00000001)"
 
-# for both below
-#check "submit:{status:[{value:1,freq:0.3}]} !dlr with ""
-#check "submit:{status:[{value:0,freq:0.3},{value:1,freq:0.7}]}"
-# something like
-#INFO:  Stats:
-#INFO:     Send success:     70
-#INFO:     Delivery success: 70
-#INFO:     Send fail:        30
-#INFO:     Delivery fail:    0
-#INFO:     Errors:           0
-#INFO:     Avg Rps:          101 mps
-#INFO:  Unbound
+check "{submit:{status:{value:1,freq:0.3}},seed:[0,0,1]}" latin1 !dlr with "Send success:     71" 100
+check "{submit:{status:[{value:0,freq:0.7},{value:1,freq:0.3}]},seed:[0,0,1]}" latin1 !dlr with "Send success:     70" 100
 
 # stop if wasn't running
 if [[ $start_ret == 0 ]]; then

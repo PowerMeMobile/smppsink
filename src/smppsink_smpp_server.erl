@@ -57,10 +57,6 @@ init([]) ->
             {stop, Reason}
     end.
 
-terminate(_Reason, St) ->
-    smppsink_smpp_node:stop(St#st.node),
-    gen_tcp:close(St#st.lsock).
-
 handle_call(accepted, _From, St) ->
     demonitor(St#st.node_mref, [flush]),
     {reply, ok, start_new_node(St)};
@@ -82,6 +78,10 @@ handle_info(Info, St) ->
 
 code_change(_OldVsn, St, _Extra) ->
     {ok, St}.
+
+terminate(_Reason, St) ->
+    smppsink_smpp_node:stop(St#st.node),
+    gen_tcp:close(St#st.lsock).
 
 %% ===================================================================
 %% Internal
