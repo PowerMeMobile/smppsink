@@ -320,16 +320,16 @@ perform_command({send_deliver_sm, Message}, Context) ->
     ?log_debug("Send deliver sm (message: ~p)", [Message]),
     Session = ?gv(session, Context),
     gen_mc_session:deliver_sm(Session, Message);
-perform_command({sleep, Timeout}, _Context) ->
-    ?log_debug("Sleep (timeout: ~p)", [Timeout]),
-    case Timeout of
+perform_command({sleep, Time}, _Context) ->
+    ?log_debug("Sleep (time: ~p)", [Time]),
+    case Time of
         0 ->
             ok;
         infinity ->
             %% fix me
             timer:sleep(infinity);
-        Timeout when is_integer(Timeout) ->
-            timer:sleep(1000 * Timeout)
+        Time when is_integer(Time) ->
+            timer:sleep(1000 * Time)
     end;
 perform_command(nop, _Context) ->
     ok.

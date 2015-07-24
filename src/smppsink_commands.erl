@@ -133,8 +133,8 @@ parse_submit_status_command(Status, _Context) when is_integer(Status) ->
     {ok, [{reply_submit_status, {code, Status}}]};
 parse_submit_status_command(Plist, _Context) when is_list(Plist) ->
     Status = parse_submit_status(proplists:get_value("status", Plist, 0)),
-    Timeout = parse_timeout(proplists:get_value("timeout", Plist, 0)),
-    {ok, [{sleep, Timeout}, {reply_submit_status, Status}]}.
+    Time = parse_delay(proplists:get_value("delay", Plist, 0)),
+    {ok, [{sleep, Time}, {reply_submit_status, Status}]}.
 
 parse_receipt_status_command(Status, Context) when is_list(Status) ->
     case proplists:get_keys(Status) of
@@ -144,9 +144,9 @@ parse_receipt_status_command(Status, Context) when is_list(Status) ->
             {ok, [{send_deliver_sm, Message}]};
         _ ->
             Status2 = proplists:get_value("status", Status, "delivered"),
-            Timeout = parse_timeout(proplists:get_value("timeout", Status, 0)),
+            Time = parse_delay(proplists:get_value("delay", Status, 0)),
             Message = build_receipt(string:to_lower(Status2), Context),
-            {ok, [{sleep, Timeout}, {send_deliver_sm, Message}]}
+            {ok, [{sleep, Time}, {send_deliver_sm, Message}]}
     end;
 parse_receipt_status_command(Status, Context) ->
     %% build status from what we got.
@@ -177,12 +177,12 @@ parse_freq_status(Freqs) ->
 
 
 
-parse_timeout(Timeout) when is_integer(Timeout), Timeout >= 0 ->
-    Timeout;
-parse_timeout(Timeout) when is_integer(Timeout), Timeout < 0 ->
+parse_delay(Time) when is_integer(Time), Time >= 0 ->
+    Time;
+parse_delay(Time) when is_integer(Time), Time < 0 ->
     0;
-parse_timeout(Timeout) when is_list(Timeout) ->
-    case string:to_lower(Timeout) of
+parse_delay(Time) when is_list(Time) ->
+    case string:to_lower(Time) of
         "inf" ->
             infinity;
         "infinity" ->

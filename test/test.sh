@@ -66,31 +66,31 @@ check "submit: 0x1" latin1 !dlr with "ERROR: Failed with: (0x00000001)"
 
 
 check "submit: {status: 1}" latin1 !dlr with "ERROR: Failed with: (0x00000001)"
-check "submit: {status: 1, timeout: 0}" latin1 !dlr with "ERROR: Failed with: (0x00000001)"
+check "submit: {status: 1, delay: 0}" latin1 !dlr with "ERROR: Failed with: (0x00000001)"
 
 check "{submit: 1}" latin1 !dlr with "ERROR: Failed with: (0x00000001)"
 check "{submit: {status: 1}}" latin1 !dlr with "ERROR: Failed with: (0x00000001)"
-check "{submit: {status: 1, timeout: 0}}" latin1 !dlr with "ERROR: Failed with: (0x00000001)"
+check "{submit: {status: 1, delay: 0}}" latin1 !dlr with "ERROR: Failed with: (0x00000001)"
 
 
 check "receipt: enroute" latin1 !dlr w/o "stat:ENROUTE"
 check "receipt: enroute" latin1 dlr with "stat:ENROUTE"
 
 check "receipt: {status: enroute}" latin1 dlr with "stat:ENROUTE"
-check "receipt: {status: enroute, timeout: 0}" latin1 dlr with "stat:ENROUTE"
+check "receipt: {status: enroute, delay: 0}" latin1 dlr with "stat:ENROUTE"
 
 check "{receipt: enroute}" latin1 dlr with "stat:ENROUTE"
 check "receipt: {status: enroute}" latin1 dlr with "stat:ENROUTE"
-check "receipt: {status: enroute, timeout: 0}" latin1 dlr with "stat:ENROUTE"
+check "receipt: {status: enroute, delay: 0}" latin1 dlr with "stat:ENROUTE"
 
 
 check "{submit: 0, receipt: enroute}" latin1 dlr with "stat:ENROUTE"
-check "{submit: {status: 0, timeout: 0}, receipt: {status: enroute, timeout: 0}}" latin1 dlr with "stat:ENROUTE"
+check "{submit: {status: 0, delay: 0}, receipt: {status: enroute, delay: 0}}" latin1 dlr with "stat:ENROUTE"
 
 check "{submit: 1, receipt: unknown}" latin1 dlr with "ERROR: Failed with: (0x00000001)"
 
 # w/o spaces
-check "{submit:{status:0,timeout:0},receipt:{status:enroute,timeout:0}}" latin1 dlr with "stat:ENROUTE"
+check "{submit:{status:0,delay:0},receipt:{status:enroute,delay:0}}" latin1 dlr with "stat:ENROUTE"
 
 # diff encoding
 check "submit:{status:1}" gsm0338 !dlr with "ERROR: Failed with: (0x00000001)"
@@ -98,10 +98,10 @@ check "submit:{status:1}" ascii !dlr with "ERROR: Failed with: (0x00000001)"
 check "submit:{status:1}" latin1 !dlr with "ERROR: Failed with: (0x00000001)"
 #check "submit:{status:1}" ucs2 !dlr with "ERROR: Failed with: (0x00000001)"
 
-check "submit:{timeout:inf}" latin1 !dlr with "ERROR: Timeout"
-check "submit:{timeout:infinity}" latin1 !dlr with "ERROR: Timeout"
-check "receipt:{timeout:inf}" latin1 dlr with "ERROR: Delivery timeout"
-check "receipt:{timeout:infinity}" latin1 dlr with "ERROR: Delivery timeout"
+check "submit:{delay:inf}" latin1 !dlr with "ERROR: Timeout"
+check "submit:{delay:infinity}" latin1 !dlr with "ERROR: Timeout"
+check "receipt:{delay:inf}" latin1 dlr with "ERROR: Delivery timeout"
+check "receipt:{delay:infinity}" latin1 dlr with "ERROR: Delivery timeout"
 
 
 # allow receipt status to be any string and integer
