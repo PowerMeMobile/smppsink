@@ -24,7 +24,7 @@ In order to run the examples below you need to have [smppload](https://github.co
 
 Return submit status 0x1 (invalid message length) after 1 sec
 <pre>
-$ smppload -P8002 -tsmpp -itest -ptest -s375296660002 -d375296543210 -b"submit:{status:1,timeout:1}" -D
+$ smppload -P8002 -tsmpp -itest -ptest -s375296660002 -d375296543210 -b"submit:{status:1,delay:1}" -D
 INFO:  Connected to 127.0.0.1:8002
 INFO:  Bound to smppsink
 ERROR: Failed with: (0x00000001) Message Length is invalid.
@@ -40,7 +40,7 @@ INFO:  Unbound
 
 Return submit status 0x0 (success) after 1 sec, then send delivery receipt "DELIVERED" after 5 secs
 <pre>
-smppload -P8002 -tsmpp -itest -ptest -s375296660002 -d375296543210 -b"{submit:{status:0,timeout:1},receipt:{status:delivered,timeout:5}}" -D
+smppload -P8002 -tsmpp -itest -ptest -s375296660002 -d375296543210 -b"{submit:{status:0,delay:1},receipt:{status:delivered,delay:5}}" -D
 INFO:  Connected to 127.0.0.1:8002
 INFO:  Bound to smppsink
 INFO:  Stats:
