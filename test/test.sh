@@ -114,12 +114,12 @@ check "receipt:{status:123}" latin1 dlr with "stat:123"
 check "submit:{status:[]}" latin1 !dlr w/o "ERROR"
 check "submit:{status:[]}" latin1 dlr with "stat:DELIVRD"
 
-check "submit:{status:{code:1,freq:1.0}}" latin1 !dlr with "ERROR: Failed with: (0x00000001)"
-check "submit:{status:[{code:1,freq:1.0}]}" latin1 !dlr with "ERROR: Failed with: (0x00000001)"
+check "submit:{status:{value:1,freq:1.0}}" latin1 !dlr with "ERROR: Failed with: (0x00000001)"
+check "submit:{status:[{value:1,freq:1.0}]}" latin1 !dlr with "ERROR: Failed with: (0x00000001)"
 
 # for both below
-#check "submit:{status:[{code:1,freq:0.3}]} latin1 !dlr with ""
-#check "submit:{status:[{code:0,freq:0.3},{value:1,freq:0.7}]}" latin1
+#check "submit:{status:[{value:1,freq:0.3}]} !dlr with ""
+#check "submit:{status:[{value:0,freq:0.3},{value:1,freq:0.7}]}"
 # something like
 #INFO:  Stats:
 #INFO:     Send success:     70
