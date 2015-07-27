@@ -53,4 +53,4 @@ INFO:     Avg Rps:          0 mps
 INFO:  Unbound
 </pre>
 
-[More examples](https://github.com/PowerMeMobile/smppsink/blob/master/test/test.sh#L62)
+[More examples](https://github.com/PowerMeMobile/smppsink/blob/master/test/test.sh#L101)
