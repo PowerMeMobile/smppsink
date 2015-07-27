@@ -165,6 +165,11 @@ parse_receipt_status_command(Status, Context) ->
     Message = build_receipt(Status2, Context),
     {ok, [{send_deliver_sm, Message}]}.
 
+parse_seed_command(Seed, _Context) when is_integer(Seed) ->
+    Seed2 = {Seed div 1000000000000,
+             Seed div 1000000 rem 1000000,
+             Seed rem 1000000},
+    {ok, [{seed, Seed2}]};
 parse_seed_command([A1,A2,A3], _Context) when is_integer(A1),
                                               is_integer(A2),
                                               is_integer(A3) ->
