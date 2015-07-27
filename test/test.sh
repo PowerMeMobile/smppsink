@@ -115,10 +115,10 @@ check "submit:{status:[]}" latin1 dlr with "stat:DELIVRD"
 check "submit:{status:{value:1,freq:1.0}}" latin1 !dlr with "ERROR: Failed with: (0x00000001)"
 check "submit:{status:[{value:1,freq:1.0}]}" latin1 !dlr with "ERROR: Failed with: (0x00000001)"
 
-check "{submit:{status:{value:1,freq:0.3}},seed:[0,0,1]}" latin1 !dlr with "Send success:     71" 100
+check "{submit:{status:{value:1,freq:0.3}},seed:1}" latin1 !dlr with "Send success:     71" 100
 check "{submit:{status:{value:1,freq:0.3}},seed:3}" latin1 !dlr with "Send success:     67" 100
-check "{submit:{status:[{value:0,freq:0.7},{value:1,freq:0.3}]},seed:[0,0,5]}" latin1 !dlr with "Send success:     69" 100
-check "{submit:{status:[{value:0,freq:0.7},{value:1,freq:0.3}]},seed:4}" latin1 !dlr with "Send success:     66" 100
+check "{submit:{status:[{value:0,freq:0.7},{value:1,freq:0.3}]},seed:5}" latin1 !dlr with "Send success:     69" 100
+check "{submit:{status:[{value:0,freq:0.7},{value:1,freq:0.3}]},seed:7}" latin1 !dlr with "Send success:     70" 100
 
 # stop if wasn't running
 if [[ $start_ret == 0 ]]; then

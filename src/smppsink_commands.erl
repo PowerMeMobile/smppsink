@@ -170,10 +170,6 @@ parse_seed_command(Seed, _Context) when is_integer(Seed) ->
              Seed div 1000000 rem 1000000,
              Seed rem 1000000},
     {ok, [{seed, Seed2}]};
-parse_seed_command([A1,A2,A3], _Context) when is_integer(A1),
-                                              is_integer(A2),
-                                              is_integer(A3) ->
-    {ok, [{seed, {A1,A2,A3}}]};
 parse_seed_command(_Seed, _Context) ->
     error.
 
