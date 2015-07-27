@@ -137,8 +137,11 @@ check "submit:{status:1}" ascii !dlr with "ERROR: Failed with: (0x00000001)"
 check "submit:{status:1}" latin1 !dlr with "ERROR: Failed with: (0x00000001)"
 #check "submit:{status:1}" ucs2 !dlr with "ERROR: Failed with: (0x00000001)"
 
+check "submit:{delay:-1}" latin1 !dlr w/o "ERROR"
+check "submit:{delay:1}"  latin1 !dlr w/o "ERROR"
 check "submit:{delay:inf}" latin1 !dlr with "ERROR: Timeout"
 check "receipt:{delay:inf}" latin1 dlr with "ERROR: Delivery timeout"
+check "submit:{delay:xyz}"  latin1 !dlr w/o "ERROR"
 
 # allow receipt status to be any string and integer
 check "receipt:abc" latin1 dlr with "stat:abc"
