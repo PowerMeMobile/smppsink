@@ -1,0 +1,16 @@
+http://www.erlang.org/documentation/doc-5.10.4/lib/tools-2.6.13/doc/html/cover.html
+
+cover:start().
+cover:compile_directory("../../src").
+
+START TESTS
+
+Modules = [smppsink_commands_builder, smppsink_commands_performer].
+
+[cover:analyse(M, coverage, module) || M <- Modules].
+[{ok,{smppsink_commands_builder,{79,14}}},
+ {ok,{smppsink_commands_performer,{72,9}}}]
+
+[cover:analyse_to_file(M, [html]) || M <- Modules].
+
+cover:stop().
