@@ -1,11 +1,10 @@
--module(smppsink_store).
+-module(smppsink_random).
 
 %% API
 -export([
     start_link/0,
-    set/2,
-    new/2,
-    get/1,
+    seed/2,
+    uniform/1,
     delete/1,
     clear/0
 ]).
@@ -27,8 +26,8 @@
 
 -include_lib("alley_common/include/gen_server_spec.hrl").
 
--type key()   :: term().
--type value() :: term().
+-type key()  :: term().
+-type seed() :: {integer(), integer(), integer()}.
 
 -record(st, {}).
 
@@ -40,22 +39,13 @@
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
--spec set(key(), value()) -> ok.
-set(Key, Value) ->
-    gen_server:call(?MODULE, {set, Key, Value}).
+-spec seed(key(), seed()) -> ok | {error, already_exists}.
+seed(Key, Seed) ->
+    gen_server:call(?MODULE, {seed, Key, Seed}).
 
--spec new(key(), value()) -> ok | {error, already_exists}.
-new(Key, Value) ->
-    gen_server:call(?MODULE, {new, Key, Value}).
-
--spec get(key()) -> {ok, value()} | {error, no_entry}.
-get(Key) ->
-    case ets:lookup(?MODULE, Key) of
-        [] ->
-            {error, no_entry};
-        [{Key, Value}] ->
-            {ok, Value}
-    end.
+-spec uniform(key()) -> {ok, float()} | {error, not_found}.
+uniform(Key) ->
+    gen_server:call(?MODULE, {uniform, Key}).
 
 -spec delete(key()) -> ok.
 delete(Key) ->
@@ -69,7 +59,7 @@ clear() ->
 %% Service API
 %% ===================================================================
 
--spec get_all() -> [{key(), value()}].
+-spec get_all() -> [{key(), seed()}].
 get_all() ->
     ets:tab2list(?MODULE).
 
@@ -81,17 +71,25 @@ init([]) ->
     ?MODULE = ets:new(?MODULE, [named_table]),
     {ok, #st{}}.
 
-handle_call({set, Key, Value}, _From, St = #st{}) ->
-    true = ets:insert(?MODULE, {Key, Value}),
-    {reply, ok, St};
-handle_call({new, Key, Value}, _From, St = #st{}) ->
+handle_call({seed, Key, Seed}, _From, St = #st{}) ->
     Reply =
         case ets:lookup(?MODULE, Key) of
             [] ->
-                true = ets:insert(?MODULE, {Key, Value}),
+                true = ets:insert(?MODULE, {Key, Seed}),
                 ok;
             [{Key, _Value}] ->
                 {error, already_exists}
+        end,
+    {reply, Reply, St};
+handle_call({uniform, Key}, _From, St = #st{}) ->
+    Reply =
+        case ets:lookup(?MODULE, Key) of
+            [] ->
+                {error, not_found};
+            [{Key, Seed}] ->
+                {Rand, Seed2} = random:uniform_s(Seed),
+                true = ets:insert(?MODULE, {Key, Seed2}),
+                {ok, Rand}
         end,
     {reply, Reply, St};
 handle_call(Request, _From, St = #st{}) ->

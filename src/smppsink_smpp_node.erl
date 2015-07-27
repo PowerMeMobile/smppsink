@@ -80,7 +80,7 @@ init(LSock) ->
     {ok, #st{smpp_log_mgr = SMPPLogMgr, mc_session = Session}}.
 
 terminate(_Reason, St) ->
-    ok = smppsink_store:delete({seed, St#st.mc_session}),
+    ok = smppsink_random:delete(St#st.mc_session),
     catch(gen_mc_session:stop(St#st.mc_session)),
     catch(pmm_smpp_logger_h:deactivate(St#st.smpp_log_mgr)),
     catch(smpp_log_mgr:stop(St#st.smpp_log_mgr)).
@@ -303,20 +303,16 @@ perform_command({reply_submit_status, Status}, Context) ->
                     [Code, smpp_error:format(Code)]),
                 {error, Code};
             {freq, Freqs} ->
-                {ok, Seed} = smppsink_store:get({seed, Session}),
-                case choose_submit_code(Freqs, Seed) of
-                    {Code, Seed2} ->
-                        ok = smppsink_store:set({seed, Session}, Seed2),
-                        if
-                            Code =:= 0 ->
-                                MsgId = ?gv(msg_id, Context),
-                                ?log_debug("Reply success (message_id: ~p)", [MsgId]),
-                                {ok, [{message_id, integer_to_list(MsgId)}]};
-                            true ->
-                                ?log_debug("Reply failure (status: 0x~8.16.0B, message: \"~s\")",
-                                    [Code, smpp_error:format(Code)]),
-                                {error, Code}
-                        end
+                {ok, Rand} = smppsink_random:uniform(Session),
+                case choose_submit_code(Freqs, Rand) of
+                    0 ->
+                        MsgId = ?gv(msg_id, Context),
+                        ?log_debug("Reply success (message_id: ~p)", [MsgId]),
+                        {ok, [{message_id, integer_to_list(MsgId)}]};
+                    Code ->
+                        ?log_debug("Reply failure (status: 0x~8.16.0B, message: \"~s\")",
+                            [Code, smpp_error:format(Code)]),
+                        {error, Code}
                 end
         end,
     SeqNum = ?gv(seq_num, Context),
@@ -338,21 +334,20 @@ perform_command({sleep, Time}, _Context) ->
     end;
 perform_command({seed, Seed}, Context) ->
     Session = ?gv(session, Context),
-    smppsink_store:new({seed, Session}, Seed),
+    smppsink_random:seed(Session, Seed),
     ok;
 perform_command(nop, _Context) ->
     ok.
 
-choose_submit_code(Freqs, Seed) ->
+choose_submit_code(Freqs, Rand) ->
     Distr = calc_freqs_distribution(Freqs),
-    {Rand, Seed2} = random:uniform_s(Seed),
     Outcome = ac_lists:findwith(
         fun({_Code, FF, FT}) -> Rand >= FF andalso Rand < FT end, Distr),
     case Outcome of
         {value, {Code, _FF, _FT}} ->
-            {Code, Seed2};
+            Code;
         false ->
-            {0, Seed2}
+            0
     end.
 
 calc_freqs_distribution(Freqs) ->

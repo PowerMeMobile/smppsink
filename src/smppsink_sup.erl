@@ -30,7 +30,7 @@ start_link() ->
 init([]) ->
     {ok, {{one_for_one, 5, 10}, [
         ?CHILD(smppsink_id_map, permanent, 10000, worker),
-        ?CHILD(smppsink_store, permanent, 5000, worker),
+        ?CHILD(smppsink_random, permanent, 5000, worker),
         ?CHILD(smppsink_smpp_node_sup, permanent, 5000, supervisor),
         ?CHILD(smppsink_smpp_server, permanent, 10000, worker)
     ]}}.
