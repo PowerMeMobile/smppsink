@@ -52,6 +52,44 @@ function check() {
     fi
 }
 
+function check_count() {
+    local command="$1"
+    local encoding="$2"
+    local delivery="$3"
+    local invert="$4"
+    local pattern="$5"
+    local send_count="$6"
+    local expected_count="$7"
+
+    case "$delivery" in
+        !dlr) dlr_flag=0;;
+        dlr) dlr_flag=1
+    esac
+
+    case "$encoding" in
+        gsm0338) encoding=0;;
+        ascii) encoding=1;;
+        latin1) encoding=3;;
+        ucs2) encoding=8
+    esac
+
+    echo -en "$command\t$encoding\t$delivery\t"
+
+    $SMPPLOAD --host=$HOST --port=$PORT \
+        --system_type=$SYSTEM_TYPE --system_id=$SYSTEM_ID --password=$PASSWORD \
+        --source=$SRC_ADDR --destination=$DST_ADDR --body="$command" --data_coding="$encoding" \
+        --delivery=$dlr_flag --submit_timeout=5000 --delivery_timeout=5000 --count=$send_count \
+        -vv | grep "$pattern" | wc -l | grep $expected_count > /dev/null
+
+    ret=$?
+    if [[ $ret == 0 ]]; then
+        echo -e "\e[32mOK\e[0m"
+    else
+        echo -e "\e[31mFAIL\e[0m"
+        EXIT=1
+    fi
+}
+
 # try to start
 $SCRIPT_DIR/../rel/smppsink/bin/smppsink start > /dev/null
 start_ret=$?
@@ -119,6 +157,10 @@ check "{submit:{status:{value:1,freq:0.3}},seed:1}" latin1 !dlr with "Send succe
 check "{submit:{status:{value:1,freq:0.3}},seed:3}" latin1 !dlr with "Send success:     67" 100
 check "{submit:{status:[{value:0,freq:0.7},{value:1,freq:0.3}]},seed:5}" latin1 !dlr with "Send success:     69" 100
 check "{submit:{status:[{value:0,freq:0.7},{value:1,freq:0.3}]},seed:7}" latin1 !dlr with "Send success:     70" 100
+
+check_count "{receipt:{status:{value:enroute,freq:0.3}},seed:1}" latin1 dlr with "stat:ENROUTE" 100 58
+check_count "{receipt:{status:[{value:enroute,freq:0.3}]},seed:2}" latin1 dlr with "stat:ENROUTE" 100 52
+check_count "{receipt:{status:[{value:enroute,freq:0.3},{value:accepted,freq:0.2}]},seed:3}" latin1 dlr with "stat:ACCEPTD" 100 32
 
 # stop if wasn't running
 if [[ $start_ret == 0 ]]; then
