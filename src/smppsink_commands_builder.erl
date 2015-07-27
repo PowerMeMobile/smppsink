@@ -1,4 +1,4 @@
--module(smppsink_commands).
+-module(smppsink_commands_builder).
 
 -export([
     build_commands/1
