@@ -1,3 +1,14 @@
+1. Implement randomly choose a status value from a range or choose from a list:
+submit:{status:{choose:[0,1,2,3,5]}, delay:{range:[0,2]}}
+or ever BETTER simply
+submit:{status:[0,1,2,3,4,5], delay:[0,2]}
+Will return on of statuses 0-5 and with 0-2 secs delay
+submit:{receipt:[accepted, delivered, delivered, delivered, unroute]}
+The more statuses the more frequently they will be chosen
+
+2. Implement incoming messages logic. So we can completely get rid of SMPPSim.
+
+3. Implement cover analisis.
 http://www.erlang.org/documentation/doc-5.10.4/lib/tools-2.6.13/doc/html/cover.html
 
 cover:start().
