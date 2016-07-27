@@ -91,7 +91,7 @@ handle_call({handle_accept, Addr}, _From, St) ->
     smppsink_smpp_server:accepted(),
     {reply, ok, St#st{addr = Addr, uuid = Uuid}};
 
-handle_call({handle_bind, BindType, SystemType, SystemId, Password, Version}, _From, St) ->
+handle_call({handle_bind, BindType, SystemType, SystemId, Password, Version}, From, St) ->
     PduLogName = pdu_log_name(BindType, SystemType, SystemId, St#st.uuid),
     case smppsink_app:get_env(log_smpp_pdus) of
         true ->
@@ -114,12 +114,20 @@ handle_call({handle_bind, BindType, SystemType, SystemId, Password, Version}, _F
                     smppsink_app:get_env(vsn)]),
                 15), %% bind resp system_id length
             Params = [{system_id,  NameAndVsn}],
-            {reply, {ok, Params}, St#st{
+            NewSt = St#st{
                 is_bound = true,
                 system_type = list_to_binary(SystemType),
                 system_id = list_to_binary(SystemId),
                 version = Version
-            }};
+            },
+            Reply = {ok, Params},
+            case application:get_env(smppsink, postpone_bind_resp, 0) of
+                Seconds when is_integer(Seconds) andalso Seconds > 0 ->
+                    timer:send_after(Seconds*1000, {send_postponed_bind_reply, From, Reply}),
+                    {noreply, NewSt};
+                _ ->
+                    {reply, Reply, NewSt}
+            end;
         {error, ErrorCode} ->
             ?log_info("Denied bind "
                 "(bind_type: ~p, system_type: ~s, system_id: ~s, password: ~s) (~s)",
@@ -167,6 +175,9 @@ handle_cast(handle_unbind, St) ->
 handle_cast(Request, St) ->
     {stop, {unexpected_cast, Request}, St}.
 
+handle_info({send_postponed_bind_reply, From, Reply}, St = #st{}) ->
+    gen_server:reply(From, Reply),
+    {noreply, St};
 handle_info(#'EXIT'{pid = Pid, reason = Reason}, #st{mc_session = Pid} = St) ->
     {stop, {session_exit, Reason}, St};
 
