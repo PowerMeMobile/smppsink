@@ -91,7 +91,7 @@ function check_count() {
 }
 
 # try to start
-$SCRIPT_DIR/../rel/smppsink/bin/smppsink start > /dev/null
+$SCRIPT_DIR/../_build/default/rel/smppsink/bin/smppsink start > /dev/null
 start_ret=$?
 if [[ $start_ret == 0 ]]; then
     # give time to init
@@ -167,7 +167,7 @@ check_count "{receipt:{status:[{value:enroute,freq:0.3},{value:accepted,freq:0.2
 
 # stop if wasn't running
 if [[ $start_ret == 0 ]]; then
-    $SCRIPT_DIR/../rel/smppsink/bin/smppsink stop > /dev/null
+    $SCRIPT_DIR/../_build/default/rel/smppsink/bin/smppsink stop > /dev/null
 fi
 
 exit $EXIT

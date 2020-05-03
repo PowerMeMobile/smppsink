@@ -15,8 +15,8 @@ $ make
 ## Starting/stopping
 
 <pre>
-$ rel/smppsink/bin/smppsink start
-$ rel/smppsink/bin/smppsink stop
+$ _build/default/rel/smppsink/bin/smppsink start
+$ _build/default/rel/smppsink/bin/smppsink stop
 </pre>
 
 ## Usage

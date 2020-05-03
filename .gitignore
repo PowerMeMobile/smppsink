@@ -1,5 +1,2 @@
-deps/*
-ebin/*
-priv/*
-rel/smppsink
 TAGS
+_build/

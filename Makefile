@@ -1,33 +1,33 @@
 NAME=smppsink
-REBAR=./rebar
+REBAR=./rebar3
 OTP_PLT=~/.otp.plt
 PRJ_PLT=$(NAME).plt
 
 .PHONY: test
 
-all: generate
+all: rel
 
-generate: compile xref
+rel: compile xref
 	@rm -rf ./rel/$(NAME)
-	@$(REBAR) generate
+	@$(REBAR) release
 
 compile: get-deps
 	@$(REBAR) compile
 
 xref: compile
-	@$(REBAR) xref skip_deps=true
+	@$(REBAR) xref
 
 get-deps:
 	@$(REBAR) get-deps
 
 update-deps:
-	@$(REBAR) update-deps
+	@$(REBAR) upgrade
 
 clean:
 	@$(REBAR) clean
 
 test: xref
-	@$(REBAR) eunit skip_deps=true
+	@$(REBAR) eunit
 
 dialyze: $(OTP_PLT) compile $(PRJ_PLT)
 	@dialyzer --plt $(PRJ_PLT) -r ./subapps/*/ebin
@@ -42,10 +42,10 @@ $(PRJ_PLT):
 	-r ./deps/*/ebin ./subapps/*/ebin
 
 console:
-	@./rel/$(NAME)/bin/$(NAME) console
+	@./_build/default/rel/$(NAME)/bin/$(NAME) console
 
 develop:
-	@./rel/$(NAME)/bin/$(NAME) develop
+	@./_build/default/rel/$(NAME)/bin/$(NAME) develop
 
 tags:
 	@find . -name "*.[e,h]rl" -print | etags -

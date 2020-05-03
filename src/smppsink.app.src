@@ -5,9 +5,14 @@
     {applications, [
         kernel,
         stdlib,
-        lager,
+        alley_common,
         gproc,
+        lager,
+        oserl,
+        pmm_smpplib,
+        libuuid,
         yamerl
+
     ]},
     {mod, {smppsink_app, []}},
     {env, []}
