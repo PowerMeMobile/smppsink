@@ -10,7 +10,7 @@
         lager,
         oserl,
         pmm_smpplib,
-        libuuid,
+        uuid,
         yamerl
 
     ]},

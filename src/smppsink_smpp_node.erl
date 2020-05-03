@@ -87,7 +87,7 @@ terminate(_Reason, St) ->
 
 handle_call({handle_accept, Addr}, _From, St) ->
     ?log_info("Accepted connection (addr: ~s)", [Addr]),
-    Uuid = binary_to_list(uuid:unparse(uuid:generate())),
+    Uuid = uuid:uuid_to_string(uuid:get_v4()),
     smppsink_smpp_server:accepted(),
     {reply, ok, St#st{addr = Addr, uuid = Uuid}};
 
