@@ -31,8 +31,6 @@
 
 -record(st, {}).
 
--ignore_xref([{random, uniform_s, 1}]).
-
 %% ===================================================================
 %% API
 %% ===================================================================
@@ -88,9 +86,9 @@ handle_call({uniform, Key}, _From, St = #st{}) ->
         case ets:lookup(?MODULE, Key) of
             [] ->
                 {error, not_found};
-            [{Key, Seed}] ->
-                {Rand, Seed2} = random:uniform_s(Seed),
-                true = ets:insert(?MODULE, {Key, Seed2}),
+            [{Key, RandState}] ->
+                {Rand, RandState2} = rand:uniform_s(RandState),
+                true = ets:insert(?MODULE, {Key, RandState2}),
                 {ok, Rand}
         end,
     {reply, Reply, St};
