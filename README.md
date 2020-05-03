@@ -12,11 +12,23 @@ $ cd smppsink
 $ make
 </pre>
 
+## Tests
+
+<pre>
+$ test/test.sh
+</pre>
+
 ## Starting/stopping
 
 <pre>
 $ _build/default/rel/smppsink/bin/smppsink start
 $ _build/default/rel/smppsink/bin/smppsink stop
+</pre>
+
+## Debugging console
+
+<pre>
+$ _build/default/rel/smppsink/bin/smppsink console
 </pre>
 
 ## Usage
