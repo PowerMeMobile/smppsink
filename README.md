@@ -1,26 +1,38 @@
-[![Build Status](https://travis-ci.org/PowerMeMobile/smppsink.png?branch=master)](https://travis-ci.org/PowerMeMobile/smppsink)
+[![Build Status](https://travis-ci.org/ten0s/smppsink.png?branch=master)](https://travis-ci.org/ten0s/smppsink)
 
 ## Prerequisites
 
-In order to compile **smppsink** you need to have [Erlang](http://www.erlang.org/) and [GNU Make](http://www.gnu.org/software/make/) installed.
+In order to compile **smppsink** you need to have [Erlang/OTP 19+](http://www.erlang.org/) and [GNU Make](http://www.gnu.org/software/make/) installed.
 
 ## Compilation
 
 <pre>
-$ git https://github.com/PowerMeMobile/smppsink.git
+$ git https://github.com/ten0s/smppsink.git
 $ cd smppsink
 $ make
+</pre>
+
+## Tests
+
+<pre>
+$ test/test.sh
 </pre>
 
 ## Starting/stopping
 
 <pre>
-$ rel/smppsink/bin/smppsink start
-$ rel/smppsink/bin/smppsink stop
+$ _build/default/rel/smppsink/bin/smppsink start
+$ _build/default/rel/smppsink/bin/smppsink stop
+</pre>
+
+## Debugging console
+
+<pre>
+$ _build/default/rel/smppsink/bin/smppsink console
 </pre>
 
 ## Usage
-In order to run the examples below you need to have [smppload](https://github.com/PowerMeMobile/smppload).
+In order to run the examples below you need to have [smppload](https://github.com/ten0s/smppload).
 
 Return submit status 0x1 (invalid message length) after 1 sec
 <pre>
@@ -53,4 +65,4 @@ INFO:     Avg Rps:          0 mps
 INFO:  Unbound
 </pre>
 
-[More examples](https://github.com/PowerMeMobile/smppsink/blob/master/test/test.sh#L101)
+[More examples](https://github.com/ten0s/smppsink/blob/master/test/test.sh#L101)

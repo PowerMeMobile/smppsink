@@ -1,10 +1,7 @@
 language: erlang
 script: "make && test/test.sh"
 otp_release:
-  - R16B03-1
+  - 19.3
 notifications:
   email:
-    - d.klionsky@dev.powermemobile.com
-before_install:
- - sudo apt-get update -qq
- - sudo apt-get install -qq uuid-dev
+    - dm.klionsky@gmail.com

@@ -2,8 +2,6 @@
 # -*- tab-width:4;indent-tabs-mode:nil -*-
 # ex: ts=4 sw=4 et
 
-ENTOP_NODE_ARG="-name entop-smppsink@127.0.0.1"
-
 RUNNER_SCRIPT_DIR=$(cd ${0%/*} && pwd)
 
 CALLER_DIR=$PWD
@@ -291,20 +289,6 @@ case "$1" in
         # Start the VM
         exec $CMD -- ${1+"$@"}
         ;;
-    top)
-        # Make sure a node IS running
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
-
-        shift
-        APP_NODE=`grep -e '-[s]*name' $RUNNER_BASE_DIR/releases/$APP_VSN/vm.args | awk '{print $2}'`
-        echo app node $APP_NODE
-        $ERTS_PATH/erl -noinput -hidden +A 20 +Bc -eval "entop:start('${APP_NODE}')" $ENTOP_NODE_ARG $COOKIE_ARG $@
-        ;;
-
     *)
         echo "Usage: $SCRIPT {start|start_boot <file>|foreground|stop|restart|reboot|ping|console|develop|console_clean|console_boot <file>|attach|remote_console|upgrade|script}"
         exit 1

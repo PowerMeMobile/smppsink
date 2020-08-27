@@ -51,11 +51,11 @@
 %% API
 %% ===================================================================
 
--spec start_link/1 :: (port()) -> {ok, pid()}.
+-spec start_link(port()) -> {ok, pid()}.
 start_link(LSock) ->
     gen_server:start_link(?MODULE, LSock, []).
 
--spec stop/1 :: (pid()) -> no_return().
+-spec stop(pid()) -> no_return().
 stop(Node) ->
     gen_server:cast(Node, stop).
 
@@ -87,7 +87,7 @@ terminate(_Reason, St) ->
 
 handle_call({handle_accept, Addr}, _From, St) ->
     ?log_info("Accepted connection (addr: ~s)", [Addr]),
-    Uuid = binary_to_list(uuid:unparse(uuid:generate())),
+    Uuid = uuid:uuid_to_string(uuid:get_v4()),
     smppsink_smpp_server:accepted(),
     {reply, ok, St#st{addr = Addr, uuid = Uuid}};
 

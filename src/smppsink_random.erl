@@ -59,7 +59,7 @@ clear() ->
 %% Service API
 %% ===================================================================
 
--spec get_all() -> [{key(), seed()}].
+-spec get_all() -> [{key(), rand:state()}].
 get_all() ->
     ets:tab2list(?MODULE).
 
@@ -75,7 +75,8 @@ handle_call({seed, Key, Seed}, _From, St = #st{}) ->
     Reply =
         case ets:lookup(?MODULE, Key) of
             [] ->
-                true = ets:insert(?MODULE, {Key, Seed}),
+                RandState = rand:seed(exsplus, Seed),
+                true = ets:insert(?MODULE, {Key, RandState}),
                 ok;
             [{Key, _Value}] ->
                 {error, already_exists}
@@ -86,9 +87,9 @@ handle_call({uniform, Key}, _From, St = #st{}) ->
         case ets:lookup(?MODULE, Key) of
             [] ->
                 {error, not_found};
-            [{Key, Seed}] ->
-                {Rand, Seed2} = random:uniform_s(Seed),
-                true = ets:insert(?MODULE, {Key, Seed2}),
+            [{Key, RandState}] ->
+                {Rand, RandState2} = rand:uniform_s(RandState),
+                true = ets:insert(?MODULE, {Key, RandState2}),
                 {ok, Rand}
         end,
     {reply, Reply, St};
