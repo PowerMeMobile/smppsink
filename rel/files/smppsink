@@ -48,7 +48,7 @@ if [ -e "$USE_DIR/sys.config" ]; then
 else
     if [ -e "$RUNNER_ETC_DIR/app.config" ]; then
         CONFIG_PATH="$RUNNER_ETC_DIR/app.config"
-    elsr
+    else
         CONFIG_PATH="$RUNNER_BASE_DIR/releases/$APP_VSN/sys.config"
     fi
 fi
