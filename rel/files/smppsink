@@ -25,16 +25,16 @@ START_ERL=`cat $RUNNER_BASE_DIR/releases/start_erl.data`
 ERTS_VSN=${START_ERL% *}
 APP_VSN=${START_ERL#* }
 
-# Use $CWD/vm.args if exists, otherwise releases/APP_VSN/vm.args, or else etc/vm.args
+# Use $CWD/vm.args if exists, otherwise etc/vm.args, or else releases/APP_VSN/vm.args
 if [ -e "$CALLER_DIR/vm.args" ]; then
     VMARGS_PATH=$CALLER_DIR/vm.args
     USE_DIR=$CALLER_DIR
 else
     USE_DIR=$RUNNER_BASE_DIR
-    if [ -e "$RUNNER_BASE_DIR/releases/$APP_VSN/vm.args" ]; then
-        VMARGS_PATH="$RUNNER_BASE_DIR/releases/$APP_VSN/vm.args"
-    else
+    if [ -e "$RUNNER_ETC_DIR/vm.args" ]; then
         VMARGS_PATH="$RUNNER_ETC_DIR/vm.args"
+    else
+        VMARGS_PATH="$RUNNER_BASE_DIR/releases/$APP_VSN/vm.args"
     fi
 fi
 
@@ -42,14 +42,14 @@ RUNNER_LOG_DIR=$USE_DIR/log
 # Make sure log directory exists
 mkdir -p $RUNNER_LOG_DIR
 
-# Use releases/VSN/sys.config if it exists otherwise use etc/app.config
+# Use $USE_DIR/sys.config if exists, otherwise etc/app.config if it exists otherwise use releases/VSN/sys.config
 if [ -e "$USE_DIR/sys.config" ]; then
     CONFIG_PATH="$USE_DIR/sys.config"
 else
-    if [ -e "$RUNNER_BASE_DIR/releases/$APP_VSN/sys.config" ]; then
-        CONFIG_PATH="$RUNNER_BASE_DIR/releases/$APP_VSN/sys.config"
-    else
+    if [ -e "$RUNNER_ETC_DIR/app.config" ]; then
         CONFIG_PATH="$RUNNER_ETC_DIR/app.config"
+    elsr
+        CONFIG_PATH="$RUNNER_BASE_DIR/releases/$APP_VSN/sys.config"
     fi
 fi
 
