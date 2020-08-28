@@ -1,5 +1,5 @@
 [{<<"alley_common">>,
-  {git,"https://github.com/ten0s/alley_common.git",
+  {git,"https://github.com/PowerMeMobile/alley_common.git",
        {ref,"548c6bfce28e76fa9419a00f282616bce5a8b4d2"}},
   0},
  {<<"common_lib">>,
