@@ -44,6 +44,7 @@ make
 
 %install
 mkdir -p %{buildroot}/opt/smppsink
+mkdir -p %{buildroot}/opt/smppsink/etc
 #find _build/ | sort
 cd _build/default/rel/smppsink
 cp -a . %{buildroot}/opt/smppsink/
