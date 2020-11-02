@@ -42,15 +42,15 @@ RUNNER_LOG_DIR=$USE_DIR/log
 # Make sure log directory exists
 mkdir -p $RUNNER_LOG_DIR
 
-# Use $USE_DIR/sys.config if exists, otherwise etc/app.config if it exists otherwise use releases/VSN/sys.config
-if [ -e "$USE_DIR/sys.config" ]; then
-    CONFIG_PATH="$USE_DIR/sys.config"
+# Use etc/app.config if exists, otherwise $USE_DIR/sys.config if it exists otherwise use releases/VSN/sys.config
+if [ -e "$RUNNER_ETC_DIR/app.config" ]; then
+	CONFIG_PATH="$RUNNER_ETC_DIR/app.config"
 else
-    if [ -e "$RUNNER_ETC_DIR/app.config" ]; then
-        CONFIG_PATH="$RUNNER_ETC_DIR/app.config"
-    else
-        CONFIG_PATH="$RUNNER_BASE_DIR/releases/$APP_VSN/sys.config"
-    fi
+	if [ -e "$USE_DIR/sys.config" ]; then
+		CONFIG_PATH="$USE_DIR/sys.config"
+	else
+		CONFIG_PATH="$RUNNER_BASE_DIR/releases/$APP_VSN/sys.config"
+	fi
 fi
 
 # Extract the target node name from node.args
