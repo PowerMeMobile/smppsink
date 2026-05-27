@@ -33,11 +33,14 @@ RPM_NAME="pmm-smppsink-base"
 export PMM_VERSION
 export PROJ_REL
 
+[ -f buildsystem.conf ] && . buildsystem.conf || { echo "can't load \"buildsystem.conf\""; exit 1; }
+
 function send_comment() {
 	local retcode=$1
 	~/bin/git_send_comment.sh $retcode "smppsink" $BUILD_URL $PMM_VERSION $GIT_COMMIT
 }
 
+arch=$(uname -m)
 function build_rpm() {
 set -x
 	./builder_genspec.sh
@@ -50,7 +53,7 @@ set -x
 	echo "######## Start Mock!"
 	local ret_code
 	[ -d build ] || mkdir build
-	/usr/bin/mock -r epel-6-pmm-x86_64 --resultdir=build --plugin-option=bind_mount:dirs="[(\"build\",\"/tmp/build\")]" --rebuild ${HOME}/rpmbuild/SRPMS/${RPM_NAME}-${PMM_VERSION}-${PROJ_REL}.src.rpm
+	/usr/bin/mock -r ${MOCK_CONTAINER["$arch"]} --resultdir=build --plugin-option=bind_mount:dirs="[(\"build\",\"/tmp/build\")]" --rebuild ${HOME}/rpmbuild/SRPMS/${RPM_NAME}-${PMM_VERSION}-${PROJ_REL}.src.rpm
 #	/usr/bin/mock --offline -r epel-6-pmm-x86_64 --resultdir=build --plugin-option=bind_mount:dirs="[(\"build\",\"/tmp/build\")]" --rebuild ${HOME}/rpmbuild/SRPMS/${RPM_NAME}-${PMM_VERSION}-${PROJ_REL}.src.rpm
 	ret_code=$?
 	rm -f ${HOME}/rpmbuild/SRPMS/${RPM_NAME}-${PMM_VERSION}-${PROJ_REL}.src.rpm

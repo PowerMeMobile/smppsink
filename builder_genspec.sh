@@ -2,7 +2,9 @@
 
 [ -n "$PMM_VERSION" ] || { echo "PMM_VERSION must be defined (x.y.z.nnnn)."; exit 1; }
 [ -n "$PROJ_REL" ] || { echo "PROJ_REL must be defined (rc_commit)."; exit 1; }
+[ -f buildsystem.conf ] && . buildsystem.conf || { echo "can't load \"buildsystem.conf\""; exit 1; }
 
+arch=$(uname -m)
 rpmName="pmm-smppsink-base"
 rpmSpecFile=${HOME}/rpmbuild/SPECS/${rpmName}.spec
 
@@ -28,7 +30,7 @@ Group: Applications/System
 License: Proprietary
 Source0: ${rpmName}-${PMM_VERSION}.tar
 
-BuildRequires: esl-erlang > 18
+BuildRequires: ${ERLANG_PACKAGE["$arch"]} ${ERLANG_VERSION["$arch"]}
 BuildRequires: libuuid-devel git net-snmp-utils tokyocabinet-devel ncurses-devel gcc-c++ zlib-devel bzip2-devel
 
 %description
