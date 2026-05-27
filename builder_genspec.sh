@@ -12,6 +12,7 @@ rm -f $rpmSpecFile
 
 ### base packages
 cat >"${rpmSpecFile}" <<_SPEC_
+%define _build_id_links none
 %define  debug_package %{nil}
 %define _unpackaged_files_terminate_build 0
 %define buildroot_bak %{buildroot}
